@@ -17,13 +17,14 @@ type Theme = {
   imageFrame: string;
   bodyPattern: string;
   buttonVar: string;
+  sidebar: string;
 };
 
-type CollectionItem = {
-  name: string;
-  progress: number;
-  sprite: string;
-};
+type NavKey = 'dashboard' | 'player' | 'collections' | 'upgrades' | 'leaderboards' | 'settings';
+
+type Upgrade = { name: string; cost: string; impact: string; reason: string; item: string };
+
+type CollectionItem = { name: string; progress: number; item: string; tier: string; next: string };
 
 const themes: Theme[] = [
   {
@@ -42,6 +43,7 @@ const themes: Theme[] = [
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(132,204,22,0.12),transparent_25%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.1),transparent_30%)]',
     buttonVar: '#a3e635',
+    sidebar: 'bg-zinc-950/90 border-white/10',
   },
   {
     name: 'Sky',
@@ -59,6 +61,7 @@ const themes: Theme[] = [
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_34%)]',
     buttonVar: '#67e8f9',
+    sidebar: 'bg-sky-950/90 border-sky-200/10',
   },
   {
     name: 'Ruby',
@@ -76,153 +79,40 @@ const themes: Theme[] = [
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.12),transparent_34%)]',
     buttonVar: '#fda4af',
+    sidebar: 'bg-neutral-950/90 border-rose-200/10',
   },
 ];
 
-function makePixelSvg(cells: string[], palette: Record<string, string>) {
-  const size = 16;
-  const pixel = 8;
-  let rects = '';
+const textureBase = 'https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.20.4/assets/minecraft/textures';
+const item = (name: string) => `${textureBase}/item/${name}.png`;
+const block = (name: string) => `${textureBase}/block/${name}.png`;
 
-  cells.forEach((row, y) => {
-    [...row].forEach((cell, x) => {
-      if (cell !== '.') {
-        rects += `<rect x="${x * pixel}" y="${y * pixel}" width="${pixel}" height="${pixel}" fill="${palette[cell]}"/>`;
-      }
-    });
-  });
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size * pixel}" height="${size * pixel}" shape-rendering="crispEdges" viewBox="0 0 ${size * pixel} ${size * pixel}"><rect width="100%" height="100%" fill="transparent"/>${rects}</svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
-const sprites = {
-  melon: makePixelSvg(
-    [
-      '................',
-      '................',
-      '....GGGGGGGG....',
-      '...GLLLLLLLLG...',
-      '..GLRLRLRLRLGG..',
-      '..GLLLLLLLLLLG..',
-      '..GLRLRLRLRLLG..',
-      '..GLLLLLLLLLLG..',
-      '..GLRLRLRLRLLG..',
-      '..GLLLLLLLLLLG..',
-      '..GLLRLRLRLRLG..',
-      '..GGLLLLLLLLGG..',
-      '...GGGGGGGGGG...',
-      '................',
-      '................',
-      '................',
-    ],
-    { G: '#5a8f2b', L: '#8fd14f', R: '#ff6b81' }
-  ),
-  cobblestone: makePixelSvg(
-    [
-      '................',
-      '................',
-      '...SSSSSSSSSS...',
-      '..SMMMMDSMMDDS..',
-      '..SMDDMSMMSMDS..',
-      '..SMDSSMDDMSMS..',
-      '..SDSMMSMDDSMS..',
-      '..SMMDSMSMDSMS..',
-      '..SMDSMMDDMSMS..',
-      '..SMMDSMMSMDDS..',
-      '..SMSDMDSMMSMS..',
-      '..SDMSMMSDDMDS..',
-      '...SSSSSSSSSS...',
-      '................',
-      '................',
-      '................',
-    ],
-    { S: '#7a7a7a', M: '#9a9a9a', D: '#5f5f5f' }
-  ),
-  diamond: makePixelSvg(
-    [
-      '................',
-      '................',
-      '.......CC.......',
-      '......CCCC......',
-      '.....CBAABC.....',
-      '....CBAAAABC....',
-      '...CBAAAAAABC...',
-      '....BAAAAAAB....',
-      '.....AAAAAA.....',
-      '......AAAA......',
-      '.......AA.......',
-      '........A.......',
-      '................',
-      '................',
-      '................',
-      '................',
-    ],
-    { A: '#62f6ea', B: '#2fd8cc', C: '#b9fffa' }
-  ),
-  fish: makePixelSvg(
-    [
-      '................',
-      '................',
-      '................',
-      '.....OO.........',
-      '...OOOOOOB......',
-      '..OOOOOOOOBBB...',
-      '.OOOOWOOOOOBB...',
-      '..OOOOOOOOBBB...',
-      '...OOOOOOB......',
-      '.....OO.........',
-      '................',
-      '................',
-      '................',
-      '................',
-      '................',
-      '................',
-    ],
-    { O: '#ffb347', B: '#ff8f1f', W: '#1f2937' }
-  ),
-  pumpkin: makePixelSvg(
-    [
-      '................',
-      '.......GG.......',
-      '....OOOOOOOO....',
-      '...OYYOYYOYYO...',
-      '..OYYYYYYYYYYO..',
-      '..OYYOYYOYYYYO..',
-      '..OYYYYYYYYYYO..',
-      '..OYYOYYOYYYYO..',
-      '..OYYYYYYYYYYO..',
-      '...OYYOYYOYYO...',
-      '....OOOOOOOO....',
-      '................',
-      '................',
-      '................',
-      '................',
-      '................',
-    ],
-    { G: '#4d7c0f', O: '#fb923c', Y: '#fdba74' }
-  ),
-  wheat: makePixelSvg(
-    [
-      '................',
-      '.......N........',
-      '......NYY.......',
-      '.....NYYYY......',
-      '....NYYYYYY.....',
-      '.....NYYYY......',
-      '....NYYYYYY.....',
-      '.....NYYYY......',
-      '....NYYYYYY.....',
-      '.....NYYYY......',
-      '......NYY.......',
-      '.......N........',
-      '.......N........',
-      '.......N........',
-      '................',
-      '................',
-    ],
-    { N: '#7c5d2f', Y: '#facc15' }
-  ),
+const textures = {
+  player: 'https://mc-heads.net/avatar/Technoblade/128',
+  melon: block('melon_side'),
+  cobblestone: block('cobblestone'),
+  diamond: item('diamond'),
+  fish: item('cod'),
+  pumpkin: block('pumpkin_side'),
+  wheat: item('wheat'),
+  diamondPickaxe: item('diamond_pickaxe'),
+  fishingRod: item('fishing_rod'),
+  diamondHoe: item('diamond_hoe'),
+  enchantedBook: item('enchanted_book'),
+  chest: block('chest_front'),
+  emerald: item('emerald'),
+  gold: item('gold_ingot'),
+  netherStar: item('nether_star'),
+  compass: item('compass_00'),
+  map: item('filled_map'),
+  clock: item('clock_00'),
+  enderChest: block('ender_chest_front'),
+  diamondSword: item('diamond_sword'),
+  helmet: item('diamond_helmet'),
+  boots: item('diamond_boots'),
+  shovel: item('diamond_shovel'),
+  bucket: item('water_bucket'),
+  book: item('book'),
 };
 
 function ArrowIcon({ className = '' }: { className?: string }) {
@@ -234,9 +124,44 @@ function ArrowIcon({ className = '' }: { className?: string }) {
   );
 }
 
+function ActionButton({ label, color }: { label: string; color: string }) {
+  return (
+    <button
+      className="group inline-flex items-center justify-between gap-3 overflow-hidden rounded-full px-5 py-3 font-semibold text-white transition duration-300 hover:bg-black"
+      style={{ backgroundColor: color } as React.CSSProperties}
+    >
+      <span>{label}</span>
+      <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white" style={{ color: color } as React.CSSProperties}>
+        <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
+        <ArrowIcon className="absolute h-4 w-4 -translate-x-[150%] translate-y-[150%] transition-transform delay-100 duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
+      </span>
+    </button>
+  );
+}
+
+function ItemThumb({ src, alt, frameClass, size = 'h-14 w-14' }: { src: string; alt: string; frameClass: string; size?: string }) {
+  return (
+    <div className={`rounded-2xl border p-2 ${frameClass}`}>
+      <img src={src} alt={alt} className={`${size} object-contain [image-rendering:pixelated]`} />
+    </div>
+  );
+}
+
+function SectionTitle({ eyebrow, title, faintClass, right }: { eyebrow: string; title: string; faintClass: string; right?: string }) {
+  return (
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <div>
+        <div className={`text-sm uppercase tracking-[0.25em] ${faintClass}`}>{eyebrow}</div>
+        <h3 className="mt-2 text-2xl font-bold">{title}</h3>
+      </div>
+      {right ? <div className={`text-sm ${faintClass}`}>{right}</div> : null}
+    </div>
+  );
+}
+
 export default function SkyBlockHubPrototype() {
   const [selectedTheme, setSelectedTheme] = useState('Void');
-  const [selectedMenu, setSelectedMenu] = useState('Overview');
+  const [selectedMenu, setSelectedMenu] = useState<NavKey>('dashboard');
 
   const activeTheme = useMemo(
     () => themes.find((theme) => theme.name === selectedTheme) ?? themes[0],
@@ -257,91 +182,67 @@ export default function SkyBlockHubPrototype() {
     slayerXP: '9.4M',
     catacombs: 50,
     museumValue: '3.8B',
+    gardenLevel: 15,
+    hotm: 10,
+    pets: 21,
+    accessories: 139,
   };
 
   const collections: CollectionItem[] = [
-    { name: 'Melon', progress: 96, sprite: sprites.melon },
-    { name: 'Cobblestone', progress: 88, sprite: sprites.cobblestone },
-    { name: 'Diamond', progress: 84, sprite: sprites.diamond },
-    { name: 'Raw Fish', progress: 61, sprite: sprites.fish },
-    { name: 'Pumpkin', progress: 97, sprite: sprites.pumpkin },
-    { name: 'Wheat', progress: 94, sprite: sprites.wheat },
+    { name: 'Melon', progress: 96, item: textures.melon, tier: 'X', next: 'Final medals and crop optimization' },
+    { name: 'Cobblestone', progress: 88, item: textures.cobblestone, tier: 'IX', next: 'Last minion-related unlocks' },
+    { name: 'Diamond', progress: 84, item: textures.diamond, tier: 'IX', next: 'Mining recipe progression' },
+    { name: 'Raw Fish', progress: 61, item: textures.fish, tier: 'VIII', next: 'Fishing utility unlocks' },
+    { name: 'Pumpkin', progress: 97, item: textures.pumpkin, tier: 'X', next: 'Nearly maxed crop milestones' },
+    { name: 'Wheat', progress: 94, item: textures.wheat, tier: 'X', next: 'Finish final farming recipe unlocks' },
   ];
 
-  const cheapUpgrades = {
+  const cheapUpgrades: Record<string, Upgrade[]> = {
     farming: [
-      { name: 'Lotus Equipment Upgrade', cost: '8.5M', impact: '+Farming Fortune', reason: 'Best low-cost fortune gain' },
-      { name: 'Crop Tool Reforge', cost: '3.2M', impact: '+Contest Power', reason: 'Cheap boost for crop contests' },
-      { name: 'Pet Item Upgrade', cost: '14M', impact: '+Pet Performance', reason: 'Good value before bigger gear swaps' },
+      { name: 'Lotus Equipment Upgrade', cost: '8.5M', impact: '+Farming Fortune', reason: 'Best low-cost fortune gain', item: textures.diamondHoe },
+      { name: 'Crop Tool Reforge', cost: '3.2M', impact: '+Contest Power', reason: 'Cheap boost for crop contests', item: textures.enchantedBook },
+      { name: 'Pet Item Upgrade', cost: '14M', impact: '+Pet Performance', reason: 'Good value before bigger gear swaps', item: textures.gold },
     ],
     mining: [
-      { name: 'Artifact Tuning', cost: '6.8M', impact: '+Mining Stats', reason: 'Low cost stat improvement' },
-      { name: 'Gemstone Slot Unlock', cost: '18M', impact: '+Pristine / Fortune', reason: 'Efficient step before a new drill' },
-      { name: 'HotM Utility Upgrade', cost: '2.9M', impact: '+Progression', reason: 'Very cheap improvement' },
+      { name: 'Artifact Tuning', cost: '6.8M', impact: '+Mining Stats', reason: 'Low cost stat improvement', item: textures.netherStar },
+      { name: 'Gemstone Slot Unlock', cost: '18M', impact: '+Pristine / Fortune', reason: 'Efficient step before a new drill', item: textures.diamondPickaxe },
+      { name: 'HotM Utility Upgrade', cost: '2.9M', impact: '+Progression', reason: 'Very cheap improvement', item: textures.book },
     ],
     fishing: [
-      { name: 'Rod Enchant Package', cost: '4.4M', impact: '+Fishing Speed', reason: 'Cheap and immediate' },
-      { name: 'Pet Level Upgrade', cost: '11M', impact: '+Sea Creature Chance', reason: 'Strong value per coin' },
-      { name: 'Armor Piece Swap', cost: '16M', impact: '+Fishing Stats', reason: 'Good midgame upgrade' },
+      { name: 'Rod Enchant Package', cost: '4.4M', impact: '+Fishing Speed', reason: 'Cheap and immediate', item: textures.fishingRod },
+      { name: 'Pet Level Upgrade', cost: '11M', impact: '+Sea Creature Chance', reason: 'Strong value per coin', item: textures.emerald },
+      { name: 'Armor Piece Swap', cost: '16M', impact: '+Fishing Stats', reason: 'Good midgame upgrade', item: textures.boots },
     ],
   };
 
   const leaderboard = [
-    { label: 'Net Worth', rank: '#1,284', detail: 'Top 0.8% of tracked players', back: 'Coins are spread between purse, bank, inventory value, and museum assets.' },
-    { label: 'Skill Average', rank: '#2,019', detail: 'Strong all-round progression', back: 'Average skill level 48.7 with farming and mining already capped at 60.' },
-    { label: 'Farming', rank: '#742', detail: 'Contest-ready setup', back: 'Best next cheap gains are crop tool tuning and lotus equipment upgrades.' },
-    { label: 'Mining', rank: '#1,106', detail: 'Gemstone path active', back: 'Next efficient path is utility unlocks before a full drill replacement.' },
-    { label: 'Fishing', rank: '#3,488', detail: 'Mid-high tier fishing profile', back: 'Low-cost enchants and pet levels are still better than big-ticket swaps.' },
-    { label: 'Museum', rank: '#912', detail: 'High collection value', back: 'Museum value is already strong and can become a flex leaderboard category.' },
+    { label: 'Net Worth', rank: '#1,284', detail: 'Top 0.8% of tracked players', back: 'Coins are spread between purse, bank, inventory value, and museum assets.', item: textures.gold },
+    { label: 'Skill Average', rank: '#2,019', detail: 'Strong all-round progression', back: 'Average skill level 48.7 with farming and mining already capped at 60.', item: textures.book },
+    { label: 'Farming', rank: '#742', detail: 'Contest-ready setup', back: 'Best next cheap gains are crop tool tuning and lotus equipment upgrades.', item: textures.diamondHoe },
+    { label: 'Mining', rank: '#1,106', detail: 'Gemstone path active', back: 'Next efficient path is utility unlocks before a full drill replacement.', item: textures.diamondPickaxe },
+    { label: 'Fishing', rank: '#3,488', detail: 'Mid-high tier fishing profile', back: 'Low-cost enchants and pet levels are still better than big-ticket swaps.', item: textures.fishingRod },
+    { label: 'Museum', rank: '#912', detail: 'High collection value', back: 'Museum value is already strong and can become a flex leaderboard category.', item: textures.chest },
   ];
 
   const statCards = [
-    { label: 'Net Worth', value: player.netWorth },
-    { label: 'SkyBlock Level', value: player.skyblockLevel },
-    { label: 'Skill Average', value: player.skillAverage },
-    { label: 'Museum Value', value: player.museumValue },
+    { label: 'Net Worth', value: player.netWorth, item: textures.gold },
+    { label: 'SkyBlock Level', value: player.skyblockLevel, item: textures.netherStar },
+    { label: 'Skill Average', value: player.skillAverage, item: textures.book },
+    { label: 'Museum Value', value: player.museumValue, item: textures.chest },
   ];
 
-  const menuOptions = ['Overview', 'Collections', 'Upgrades', 'Leaderboards', 'Themes'];
+  const navItems: { key: NavKey; label: string; item: string }[] = [
+    { key: 'dashboard', label: 'Dashboard', item: textures.map },
+    { key: 'player', label: 'Player', item: textures.player },
+    { key: 'collections', label: 'Collections', item: textures.melon },
+    { key: 'upgrades', label: 'Upgrades', item: textures.enchantedBook },
+    { key: 'leaderboards', label: 'Leaderboards', item: textures.compass },
+    { key: 'settings', label: 'Themes', item: textures.clock },
+  ];
 
-  return (
-    <div className={`min-h-screen ${activeTheme.shell} ${activeTheme.bodyPattern}`}>
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/35 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className={`text-xs uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
-            <h1 className="text-2xl font-black tracking-tight md:text-3xl">Pixel SkyBlock Dashboard</h1>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <select
-              value={selectedMenu}
-              onChange={(e) => setSelectedMenu(e.target.value)}
-              className={`h-11 rounded-2xl border px-4 text-sm font-semibold outline-none ${activeTheme.soft}`}
-            >
-              {menuOptions.map((option) => (
-                <option key={option} value={option} className="bg-zinc-900 text-white">
-                  {option}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedTheme}
-              onChange={(e) => setSelectedTheme(e.target.value)}
-              className={`h-11 rounded-2xl border px-4 text-sm font-semibold outline-none ${activeTheme.soft}`}
-            >
-              {themes.map((theme) => (
-                <option key={theme.name} value={theme.name} className="bg-zinc-900 text-white">
-                  {theme.name} Theme
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-6 py-8">
+  function DashboardPage() {
+    return (
+      <>
         <section className="mb-8 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
           <div className={`rounded-[28px] border bg-gradient-to-br p-6 shadow-2xl shadow-black/20 ${activeTheme.panel} ${activeTheme.hero}`}>
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -349,51 +250,32 @@ export default function SkyBlockHubPrototype() {
                 <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Search Player</div>
                 <h2 className="mt-2 text-4xl font-black tracking-tight">Find any SkyBlock profile</h2>
                 <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>
-                  Added flip-card leaderboard tiles, animated pill buttons, working themes, and handcrafted pixel-art collection items.
+                  Multi-page layout, real Minecraft item textures, working themes, player overview, collections, upgrade advice, and leaderboards.
                 </p>
               </div>
             </div>
             <div className="mt-6 flex flex-col gap-3 md:flex-row">
-              <input
-                defaultValue="Technoblade"
-                className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`}
-                placeholder="Enter Minecraft username"
-              />
-              <button
-                className="group inline-flex h-14 items-center gap-3 overflow-hidden rounded-full px-5 font-semibold text-white transition duration-300 hover:bg-black"
-                style={{ backgroundColor: activeTheme.buttonVar } as React.CSSProperties}
-              >
-                <span>Search Profile</span>
-                <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white" style={{ color: activeTheme.buttonVar } as React.CSSProperties}>
-                  <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
-                  <ArrowIcon className="absolute h-4 w-4 -translate-x-[150%] translate-y-[150%] transition-transform delay-100 duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
-                </span>
-              </button>
+              <input defaultValue="Technoblade" className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`} placeholder="Enter Minecraft username" />
+              <ActionButton label="Search Profile" color={activeTheme.buttonVar} />
             </div>
-
             <div className="mt-6 flex flex-wrap gap-3">
-              {[`Menu: ${selectedMenu}`, `Theme: ${selectedTheme}`, 'Pixel Collection Art', 'Upgrade Planner'].map((tag) => (
-                <div key={tag} className={`rounded-2xl border px-4 py-2 text-sm ${activeTheme.soft}`}>
-                  {tag}
-                </div>
+              {[`Page: ${selectedMenu}`, `Theme: ${selectedTheme}`, 'Real Item Textures', 'Upgrade Planner'].map((tag) => (
+                <div key={tag} className={`rounded-2xl border px-4 py-2 text-sm ${activeTheme.soft}`}>{tag}</div>
               ))}
             </div>
           </div>
 
           <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
-            <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Selected Theme</div>
-            <h3 className="mt-2 text-2xl font-bold">{selectedTheme}</h3>
-            <p className={`mt-3 text-sm leading-6 ${activeTheme.subText}`}>
-              The dropdown now switches themes for the whole page. The call-to-action buttons use the animated sliding-arrow style you sent.
-            </p>
-            <div className="mt-5 grid grid-cols-3 gap-3">
-              {collections.slice(0, 3).map((item) => (
-                <div key={item.name} className={`rounded-2xl border p-3 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
-                  <div className={`rounded-2xl border p-2 ${activeTheme.imageFrame}`}>
-                    <img src={item.sprite} alt={item.name} className="mx-auto h-14 w-14 object-contain [image-rendering:pixelated]" />
-                  </div>
-                </div>
-              ))}
+            <SectionTitle eyebrow="Profile Snapshot" title={`${player.username} · ${player.profile}`} faintClass={activeTheme.faint} />
+            <div className="flex items-center gap-4">
+              <ItemThumb src={textures.player} alt={player.username} frameClass={activeTheme.imageFrame} size="h-20 w-20" />
+              <div className={`text-sm leading-6 ${activeTheme.subText}`}>
+                SkyBlock Level {player.skyblockLevel}, Skill Average {player.skillAverage}, Museum {player.museumValue}, HOTM {player.hotm}.
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col gap-3">
+              <ActionButton label="Open Player Page" color={activeTheme.buttonVar} />
+              <ActionButton label="See Upgrade Advice" color={activeTheme.buttonVar} />
             </div>
           </div>
         </section>
@@ -401,150 +283,291 @@ export default function SkyBlockHubPrototype() {
         <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {statCards.map((card) => (
             <div key={card.label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
-              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{card.label}</div>
+              <div className="flex items-center justify-between gap-4">
+                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{card.label}</div>
+                <ItemThumb src={card.item} alt={card.label} frameClass={activeTheme.imageFrame} />
+              </div>
               <div className="mt-3 text-3xl font-black">{card.value}</div>
             </div>
           ))}
         </section>
 
-        <section className="mb-8 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Player Snapshot</div>
-                <h3 className="mt-2 text-2xl font-bold">{player.username} · {player.profile}</h3>
-              </div>
-              <div className={`rounded-2xl px-4 py-2 text-sm ${activeTheme.accentSoft}`}>Profile loaded</div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {[
-                ['Purse', player.purse],
-                ['Bank', player.bank],
-                ['Farming', player.farming],
-                ['Mining', player.mining],
-                ['Fishing', player.fishing],
-                ['Slayer XP', player.slayerXP],
-                ['Catacombs', player.catacombs],
-              ].map(([k, v]) => (
-                <div key={String(k)} className={`rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
-                  <div className={`text-sm ${activeTheme.faint}`}>{k}</div>
-                  <div className="mt-2 text-2xl font-bold">{v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
-            <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Quick Actions</div>
-            <h3 className="mt-2 text-2xl font-bold">Explore more</h3>
-            <div className="mt-5 flex flex-col gap-3">
-              {['Open Collections', 'See Cheapest Upgrades', 'Browse Leaderboards'].map((label) => (
-                <button
-                  key={label}
-                  className="group inline-flex items-center justify-between gap-3 overflow-hidden rounded-full px-5 py-3 font-semibold text-white transition duration-300 hover:bg-black"
-                  style={{ backgroundColor: activeTheme.buttonVar } as React.CSSProperties}
-                >
-                  <span>{label}</span>
-                  <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white" style={{ color: activeTheme.buttonVar } as React.CSSProperties}>
-                    <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
-                    <ArrowIcon className="absolute h-4 w-4 -translate-x-[150%] translate-y-[150%] transition-transform delay-100 duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={`mb-8 rounded-[28px] border p-6 ${activeTheme.panel}`}>
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Collections</div>
-              <h3 className="mt-2 text-2xl font-bold">Pixel item progress</h3>
-            </div>
-            <div className={`text-sm ${activeTheme.faint}`}>Prototype art tiles</div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {collections.map((item) => (
-              <div key={item.name} className={`group rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
-                <div className="mb-4 flex items-center gap-3">
-                  <div className={`rounded-2xl border p-2 transition duration-300 group-hover:scale-105 ${activeTheme.imageFrame}`}>
-                    <img
-                      src={item.sprite}
-                      alt={item.name}
-                      className="h-16 w-16 object-contain [image-rendering:pixelated]"
-                    />
-                  </div>
-                  <div>
-                    <div className="font-semibold">{item.name}</div>
-                    <div className={`text-sm ${activeTheme.faint}`}>{item.progress}% completed</div>
-                  </div>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                  <div className={`h-full rounded-full ${activeTheme.progress}`} style={{ width: `${item.progress}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mb-8">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Leaderboards</div>
-              <h3 className="mt-2 text-2xl font-bold">Flip for more info</h3>
-            </div>
-            <div className={`text-sm ${activeTheme.faint}`}>Hover any card</div>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {leaderboard.map((entry) => (
-              <div key={entry.label} className="group h-56 [perspective:1000px]">
-                <div className="relative h-full w-full rounded-[24px] transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                  <div className={`absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border p-6 [backface-visibility:hidden] ${activeTheme.panel}`}>
-                    <div>
-                      <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{entry.label}</div>
-                      <div className="mt-4 text-4xl font-black">{entry.rank}</div>
-                    </div>
-                    <div className={`text-sm ${activeTheme.subText}`}>{entry.detail}</div>
-                  </div>
-                  <div className="absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border border-white/10 bg-black/80 p-6 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                    <div>
-                      <div className="text-sm uppercase tracking-[0.25em] text-white/60">Why it matters</div>
-                      <div className="mt-3 text-2xl font-bold">{entry.label}</div>
-                    </div>
-                    <div className="text-sm leading-6 text-white/85">{entry.back}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
         <section className="grid gap-4 xl:grid-cols-3">
           {Object.entries(cheapUpgrades).map(([category, upgrades]) => (
             <div key={category} className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
-              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{category}</div>
-              <h3 className="mt-2 text-2xl font-bold capitalize">Cheapest upgrades</h3>
-              <div className="mt-5 space-y-4">
+              <SectionTitle eyebrow={category} title="Cheapest upgrades" faintClass={activeTheme.faint} />
+              <div className="space-y-4">
                 {upgrades.map((upgrade) => (
                   <div key={upgrade.name} className={`rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="font-semibold">{upgrade.name}</div>
-                        <div className={`mt-1 text-sm ${activeTheme.faint}`}>{upgrade.reason}</div>
+                    <div className="flex items-start gap-3">
+                      <ItemThumb src={upgrade.item} alt={upgrade.name} frameClass={activeTheme.imageFrame} />
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="font-semibold">{upgrade.name}</div>
+                            <div className={`mt-1 text-sm ${activeTheme.faint}`}>{upgrade.reason}</div>
+                          </div>
+                          <div className={`rounded-xl px-3 py-1 text-sm ${activeTheme.accentSoft}`}>{upgrade.cost}</div>
+                        </div>
+                        <div className={`mt-3 text-sm ${activeTheme.accentText}`}>{upgrade.impact}</div>
                       </div>
-                      <div className={`rounded-xl px-3 py-1 text-sm ${activeTheme.accentSoft}`}>{upgrade.cost}</div>
                     </div>
-                    <div className={`mt-3 text-sm ${activeTheme.accentText}`}>{upgrade.impact}</div>
                   </div>
                 ))}
               </div>
             </div>
           ))}
         </section>
-      </main>
+      </>
+    );
+  }
+
+  function PlayerPage() {
+    const blocks = [
+      ['Purse', player.purse, textures.gold],
+      ['Bank', player.bank, textures.enderChest],
+      ['Garden Level', player.gardenLevel, textures.melon],
+      ['HOTM', player.hotm, textures.diamondPickaxe],
+      ['Pets', player.pets, textures.emerald],
+      ['Accessories', player.accessories, textures.book],
+      ['Catacombs', player.catacombs, textures.diamondSword],
+      ['Slayer XP', player.slayerXP, textures.netherStar],
+    ] as const;
+
+    return (
+      <>
+        <section className={`mb-8 rounded-[28px] border p-6 ${activeTheme.panel}`}>
+          <SectionTitle eyebrow="Player Page" title="Full progression overview" faintClass={activeTheme.faint} right="Stats · Gear · Skills · Museum" />
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+            <div className={`rounded-[24px] border p-5 ${activeTheme.soft}`}>
+              <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                <ItemThumb src={textures.player} alt={player.username} frameClass={activeTheme.imageFrame} size="h-24 w-24" />
+                <div>
+                  <h4 className="text-3xl font-black">{player.username}</h4>
+                  <div className={`mt-2 ${activeTheme.subText}`}>Profile: {player.profile} · SkyBlock Level {player.skyblockLevel} · Skill Average {player.skillAverage}</div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {['Museum', 'Garden', 'Dungeons', 'Minions', 'Pets', 'Collections'].map((tag) => (
+                      <div key={tag} className={`rounded-2xl border px-3 py-2 text-sm ${activeTheme.soft}`}>{tag}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={`rounded-[24px] border p-5 ${activeTheme.soft}`}>
+              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Focus Areas</div>
+              <div className="mt-4 space-y-3">
+                {[
+                  'Farming Fortune upgrades still have the best cheap value.',
+                  'Mining utility before replacing full drill setup.',
+                  'Fishing still has easy gains through enchants and pet levels.',
+                ].map((tip) => (
+                  <div key={tip} className={`rounded-2xl border px-4 py-3 text-sm ${activeTheme.soft}`}>{tip}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {blocks.map(([label, value, img]) => (
+            <div key={label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{label}</div>
+                <ItemThumb src={img} alt={label} frameClass={activeTheme.imageFrame} />
+              </div>
+              <div className="mt-3 text-3xl font-black">{value}</div>
+            </div>
+          ))}
+        </section>
+      </>
+    );
+  }
+
+  function CollectionsPage() {
+    return (
+      <section className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
+        <SectionTitle eyebrow="Collections" title="Recipes, unlocks, and progress" faintClass={activeTheme.faint} right="Crop · Mining · Fishing" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {collections.map((entry) => (
+            <div key={entry.name} className={`group rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
+              <div className="mb-4 flex items-center gap-3">
+                <ItemThumb src={entry.item} alt={entry.name} frameClass={`${activeTheme.imageFrame} transition duration-300 group-hover:scale-105`} size="h-16 w-16" />
+                <div>
+                  <div className="font-semibold">{entry.name}</div>
+                  <div className={`text-sm ${activeTheme.faint}`}>Tier {entry.tier}</div>
+                </div>
+              </div>
+              <div className={`text-sm ${activeTheme.subText}`}>{entry.next}</div>
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
+                <div className={`h-full rounded-full ${activeTheme.progress}`} style={{ width: `${entry.progress}%` }} />
+              </div>
+              <div className={`mt-2 text-sm ${activeTheme.faint}`}>{entry.progress}% completed</div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function UpgradesPage() {
+    return (
+      <div className="grid gap-4 xl:grid-cols-3">
+        {Object.entries(cheapUpgrades).map(([category, upgrades]) => (
+          <div key={category} className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
+            <SectionTitle eyebrow={category} title="Smart next upgrades" faintClass={activeTheme.faint} right="Cheapest · Best value · Fastest" />
+            <div className="space-y-4">
+              {upgrades.map((upgrade) => (
+                <div key={upgrade.name} className={`rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
+                  <div className="flex items-start gap-3">
+                    <ItemThumb src={upgrade.item} alt={upgrade.name} frameClass={activeTheme.imageFrame} />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="font-semibold">{upgrade.name}</div>
+                          <div className={`mt-1 text-sm ${activeTheme.faint}`}>{upgrade.reason}</div>
+                        </div>
+                        <div className={`rounded-xl px-3 py-1 text-sm ${activeTheme.accentSoft}`}>{upgrade.cost}</div>
+                      </div>
+                      <div className={`mt-3 text-sm ${activeTheme.accentText}`}>{upgrade.impact}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function LeaderboardsPage() {
+    return (
+      <section>
+        <SectionTitle eyebrow="Leaderboards" title="Flip for more info" faintClass={activeTheme.faint} right="Net Worth · Skills · Farming · Mining · Fishing · Museum" />
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {leaderboard.map((entry) => (
+            <div key={entry.label} className="group h-64 [perspective:1000px]">
+              <div className="relative h-full w-full rounded-[24px] transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                <div className={`absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border p-6 [backface-visibility:hidden] ${activeTheme.panel}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{entry.label}</div>
+                      <div className="mt-4 text-4xl font-black">{entry.rank}</div>
+                    </div>
+                    <ItemThumb src={entry.item} alt={entry.label} frameClass={activeTheme.imageFrame} />
+                  </div>
+                  <div className={`text-sm ${activeTheme.subText}`}>{entry.detail}</div>
+                </div>
+                <div className="absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border border-white/10 bg-black/80 p-6 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                  <div>
+                    <div className="text-sm uppercase tracking-[0.25em] text-white/60">Why it matters</div>
+                    <div className="mt-3 text-2xl font-bold">{entry.label}</div>
+                  </div>
+                  <div className="text-sm leading-6 text-white/85">{entry.back}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function SettingsPage() {
+    return (
+      <section className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
+        <SectionTitle eyebrow="Themes" title="Visual settings" faintClass={activeTheme.faint} right="Choose your style" />
+        <div className="grid gap-4 md:grid-cols-3">
+          {themes.map((theme) => (
+            <button
+              key={theme.name}
+              onClick={() => setSelectedTheme(theme.name)}
+              className={`rounded-[24px] border p-5 text-left transition duration-300 hover:-translate-y-1 ${theme.name === selectedTheme ? activeTheme.accentSoft : activeTheme.soft}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xl font-bold">{theme.name}</div>
+                  <div className={`mt-2 text-sm ${activeTheme.faint}`}>Theme preset for the dashboard shell.</div>
+                </div>
+                <ItemThumb src={textures.clock} alt={theme.name} frameClass={activeTheme.imageFrame} />
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function renderPage() {
+    switch (selectedMenu) {
+      case 'player':
+        return <PlayerPage />;
+      case 'collections':
+        return <CollectionsPage />;
+      case 'upgrades':
+        return <UpgradesPage />;
+      case 'leaderboards':
+        return <LeaderboardsPage />;
+      case 'settings':
+        return <SettingsPage />;
+      default:
+        return <DashboardPage />;
+    }
+  }
+
+  return (
+    <div className={`min-h-screen ${activeTheme.shell} ${activeTheme.bodyPattern}`}>
+      <div className="flex min-h-screen flex-col lg:flex-row">
+        <aside className={`border-b p-4 lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:border-b-0 lg:border-r ${activeTheme.sidebar}`}>
+          <div className="mb-6 flex items-center gap-3">
+            <ItemThumb src={textures.netherStar} alt="SkyBlock Hub" frameClass={activeTheme.imageFrame} />
+            <div>
+              <div className={`text-xs uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
+              <div className="text-xl font-black">Prototype</div>
+            </div>
+          </div>
+
+          <div className={`mb-4 text-xs uppercase tracking-[0.3em] ${activeTheme.faint}`}>Pages</div>
+          <div className="space-y-2">
+            {navItems.map((nav) => (
+              <button
+                key={nav.key}
+                onClick={() => setSelectedMenu(nav.key)}
+                className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition duration-300 hover:-translate-y-0.5 ${selectedMenu === nav.key ? activeTheme.accentSoft : activeTheme.soft}`}
+              >
+                <ItemThumb src={nav.item} alt={nav.label} frameClass={activeTheme.imageFrame} />
+                <span className="font-semibold">{nav.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6">
+            <div className={`mb-3 text-xs uppercase tracking-[0.3em] ${activeTheme.faint}`}>Quick Theme</div>
+            <select value={selectedTheme} onChange={(e) => setSelectedTheme(e.target.value)} className={`h-11 w-full rounded-2xl border px-4 text-sm font-semibold outline-none ${activeTheme.soft}`}>
+              {themes.map((theme) => (
+                <option key={theme.name} value={theme.name} className="bg-zinc-900 text-white">{theme.name} Theme</option>
+              ))}
+            </select>
+          </div>
+        </aside>
+
+        <main className="flex-1 p-4 md:p-6">
+          <header className={`mb-6 rounded-[28px] border p-5 ${activeTheme.panel}`}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Current Page</div>
+                <h1 className="mt-2 text-3xl font-black capitalize">{selectedMenu}</h1>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <ActionButton label="Player Search" color={activeTheme.buttonVar} />
+                <ActionButton label="Cheapest Upgrades" color={activeTheme.buttonVar} />
+              </div>
+            </div>
+          </header>
+
+          {renderPage()}
+        </main>
+      </div>
     </div>
   );
 }
