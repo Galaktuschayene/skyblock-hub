@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SkinViewer, WalkingAnimation } from 'skinview3d';
 
 type Theme = {
   name: string;
@@ -111,8 +110,8 @@ const item = (name: string) => `${textureBase}/item/${name}.png`;
 const block = (name: string) => `${textureBase}/block/${name}.png`;
 
 const textures = {
-  player: 'https://mc-heads.net/avatar/Technoblade/128',
-  skin: 'https://mc-heads.net/skin/Technoblade',
+  playerAvatar: (name: string) => `https://mc-heads.net/avatar/${encodeURIComponent(name)}/128`,
+  playerSkin: (name: string) => `https://mc-heads.net/skin/${encodeURIComponent(name)}`,
   melon: block('melon_side'),
   cobblestone: block('cobblestone'),
   diamond: item('diamond'),
@@ -195,7 +194,7 @@ function ActionButton({
       style={{ backgroundColor: color }}
     >
       <span>{label}</span>
-      <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white" style={{ color: color }}>
+      <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white" style={{ color }}>
         <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
         <ArrowIcon className="absolute h-4 w-4 -translate-x-[150%] translate-y-[150%] transition-transform delay-100 duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
       </span>
@@ -325,31 +324,42 @@ function SkinViewerCard({ skinUrl, theme }: { skinUrl: string; theme: Theme }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    let disposed = false;
+    let viewer: any = null;
 
-    mountRef.current.innerHTML = '';
+    async function run() {
+      if (!mountRef.current) return;
 
-    const viewer = new SkinViewer({
-      width: 320,
-      height: 420,
-      skin: skinUrl,
-    });
+      mountRef.current.innerHTML = '';
 
-    mountRef.current.appendChild(viewer.canvas);
-    viewer.zoom = 0.9;
-    viewer.fov = 50;
-    viewer.autoRotate = true;
-    viewer.autoRotateSpeed = 0.8;
-    viewer.animation = new WalkingAnimation();
+      const mod = await import('skinview3d');
+      if (disposed || !mountRef.current) return;
+
+      viewer = new mod.SkinViewer({
+        width: 320,
+        height: 420,
+        skin: skinUrl,
+      });
+
+      mountRef.current.appendChild(viewer.canvas);
+      viewer.zoom = 0.9;
+      viewer.fov = 50;
+      viewer.autoRotate = true;
+      viewer.autoRotateSpeed = 0.8;
+      viewer.animation = new mod.WalkingAnimation();
+    }
+
+    run();
 
     return () => {
-      viewer.dispose();
+      disposed = true;
+      if (viewer) viewer.dispose();
     };
   }, [skinUrl]);
 
   return (
     <div className={`rounded-[28px] border p-5 ${theme.panel}`}>
-      <SectionTitle eyebrow="3D Skin" title="Rotate the player" faintClass={theme.faint} right="Auto rotating" />
+      <SectionTitle eyebrow="3D Skin" title="Player preview" faintClass={theme.faint} right="Auto rotating" />
       <div className={`flex min-h-[420px] items-center justify-center rounded-[24px] border ${theme.soft}`}>
         <div ref={mountRef} className="overflow-hidden rounded-[24px]" />
       </div>
@@ -357,10 +367,12 @@ function SkinViewerCard({ skinUrl, theme }: { skinUrl: string; theme: Theme }) {
   );
 }
 
-export default function SkyBlockHubPrototype() {
+export default function SkyBlockHubPage() {
   const [selectedTheme, setSelectedTheme] = useState('Minimal');
   const [selectedMenu, setSelectedMenu] = useState<NavKey>('overview');
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [currentPlayer, setCurrentPlayer] = useState('Technoblade');
   const [inventoryTab, setInventoryTab] = useState<InventoryTab>('Inventory');
 
   const activeTheme = useMemo(
@@ -369,7 +381,7 @@ export default function SkyBlockHubPrototype() {
   );
 
   const player = {
-    username: 'Technoblade',
+    username: currentPlayer,
     profile: 'Coconut',
     netWorth: '12.4B',
     purse: '128.5M',
@@ -430,7 +442,7 @@ export default function SkyBlockHubPrototype() {
 
   const navItems: { key: NavKey; label: string; item: string }[] = [
     { key: 'overview', label: 'Overview', item: textures.map },
-    { key: 'player', label: 'Player', item: textures.player },
+    { key: 'player', label: 'Player', item: textures.playerAvatar(currentPlayer) },
     { key: 'collections', label: 'Collections', item: textures.melon },
     { key: 'upgrades', label: 'Upgrades', item: textures.enchantedBook },
     { key: 'leaderboards', label: 'Leaderboards', item: textures.compass },
@@ -475,6 +487,14 @@ export default function SkyBlockHubPrototype() {
     ],
   };
 
+  function runSearch() {
+    const name = searchInput.trim();
+    if (!name) return;
+    setCurrentPlayer(name);
+    setHasSearched(true);
+    setSelectedMenu('overview');
+  }
+
   function LandingPage() {
     return (
       <>
@@ -483,13 +503,19 @@ export default function SkyBlockHubPrototype() {
             <div>
               <div className={`text-sm uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
               <h1 className="mt-3 max-w-3xl text-5xl font-black tracking-tight md:text-6xl">
-                The clean SkyBlock profile site with planning tools.
+                Clean Hypixel SkyBlock profiles, planning, and progression.
               </h1>
               <p className={`mt-4 max-w-2xl text-lg leading-8 ${activeTheme.subText}`}>
-                Search a player, inspect their profile, rotate their 3D skin, browse collections, preview inventory-style pages, compare upgrade paths, and check leaderboards in one place.
+                Search a player to open a profile-first dashboard with 3D skin preview, collections, inventory-style pages, upgrade suggestions, and polished leaderboards.
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <ActionButton label="Search a Profile" color={activeTheme.buttonVar} onClick={() => setHasSearched(true)} />
+              <div className="mt-6 flex flex-col gap-3 md:flex-row">
+                <input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`}
+                  placeholder="Enter Minecraft username"
+                />
+                <ActionButton label="Search Profile" color={activeTheme.buttonVar} onClick={runSearch} />
               </div>
               <div className="mt-6 flex flex-wrap gap-2">
                 {['3D Skin Viewer', 'Inventory Preview', 'Cheapest Upgrades', 'Collections', 'Leaderboards'].map((tag) => (
@@ -547,20 +573,21 @@ export default function SkyBlockHubPrototype() {
     return (
       <section className={`mb-8 rounded-[32px] border bg-gradient-to-br p-6 shadow-2xl shadow-black/5 ${activeTheme.panel} ${activeTheme.hero}`}>
         <div className="grid gap-6 lg:grid-cols-[1.05fr_1.1fr]">
-          <SkinViewerCard skinUrl={textures.skin} theme={activeTheme} />
+          <SkinViewerCard skinUrl={textures.playerSkin(currentPlayer)} theme={activeTheme} />
           <div>
-            <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Player Search</div>
+            <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Player Profile</div>
             <h2 className="mt-2 text-4xl font-black tracking-tight">{player.username}</h2>
             <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>
-              Profile-first layout with the 3D skin viewer at the top, Minecraft-style inventory in the main view, and clean tabs directly under the looked-up player.
+              Profile-first layout inspired by the best SkyBlock viewers, with the most important player sections directly underneath the searched account.
             </p>
             <div className="mt-6 flex flex-col gap-3 md:flex-row">
               <input
-                defaultValue={player.username}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`}
-                placeholder="Enter Minecraft username"
+                placeholder="Search another username"
               />
-              <ActionButton label="Load Profile" color={activeTheme.buttonVar} />
+              <ActionButton label="Load Profile" color={activeTheme.buttonVar} onClick={runSearch} />
             </div>
             <div className="mt-6 grid grid-cols-2 gap-3">
               {[
@@ -633,11 +660,11 @@ export default function SkyBlockHubPrototype() {
             <SectionTitle eyebrow="Main Features" title="What this site will do" faintClass={activeTheme.faint} />
             <div className="space-y-3">
               {[
-                '3D rotatable skin viewer at the top of the profile.',
+                '3D player skin viewer directly at the top of the profile.',
                 'Minecraft-style inventory, armor, backpack, and ender chest previews.',
                 'Collections page with progress, tiers, and next unlock targets.',
                 'Upgrade planner for farming, mining, and fishing.',
-                'Leaderboards with polished animated cards.',
+                'Leaderboards with polished cards and cleaner sections.',
               ].map((line) => (
                 <div key={line} className={`rounded-2xl border px-4 py-3 text-sm ${activeTheme.soft}`}>
                   {line}
@@ -712,7 +739,12 @@ export default function SkyBlockHubPrototype() {
           {collections.map((entry) => (
             <div key={entry.name} className={`group rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
               <div className="mb-4 flex items-center gap-3">
-                <ItemThumb src={entry.item} alt={entry.name} frameClass={`${activeTheme.imageFrame} transition duration-300 group-hover:scale-105`} size="h-16 w-16" />
+                <ItemThumb
+                  src={entry.item}
+                  alt={entry.name}
+                  frameClass={`${activeTheme.imageFrame} transition duration-300 group-hover:scale-105`}
+                  size="h-16 w-16"
+                />
                 <div>
                   <div className="font-semibold">{entry.name}</div>
                   <div className={`text-sm ${activeTheme.faint}`}>Tier {entry.tier}</div>
@@ -764,29 +796,19 @@ export default function SkyBlockHubPrototype() {
   function LeaderboardsPage() {
     return (
       <section>
-        <SectionTitle eyebrow="Leaderboards" title="Flip for more info" faintClass={activeTheme.faint} right="Net Worth · Skills · Farming · Mining · Fishing · Museum" />
+        <SectionTitle eyebrow="Leaderboards" title="Categories" faintClass={activeTheme.faint} right="Net Worth · Skills · Farming · Mining · Fishing · Museum" />
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {leaderboard.map((entry) => (
-            <div key={entry.label} className="group h-64 [perspective:1000px]">
-              <div className="relative h-full w-full rounded-[24px] transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                <div className={`absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border p-6 [backface-visibility:hidden] ${activeTheme.panel}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{entry.label}</div>
-                      <div className="mt-4 text-4xl font-black">{entry.rank}</div>
-                    </div>
-                    <ItemThumb src={entry.item} alt={entry.label} frameClass={activeTheme.imageFrame} />
-                  </div>
-                  <div className={`text-sm ${activeTheme.subText}`}>{entry.detail}</div>
+            <div key={entry.label} className={`rounded-[24px] border p-6 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{entry.label}</div>
+                  <div className="mt-3 text-4xl font-black">{entry.rank}</div>
                 </div>
-                <div className="absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border border-white/10 bg-black/85 p-6 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <div>
-                    <div className="text-sm uppercase tracking-[0.25em] text-white/60">Why it matters</div>
-                    <div className="mt-3 text-2xl font-bold">{entry.label}</div>
-                  </div>
-                  <div className="text-sm leading-6 text-white/85">{entry.back}</div>
-                </div>
+                <ItemThumb src={entry.item} alt={entry.label} frameClass={activeTheme.imageFrame} />
               </div>
+              <div className={`mt-4 text-sm ${activeTheme.subText}`}>{entry.detail}</div>
+              <div className={`mt-3 text-sm ${activeTheme.faint}`}>{entry.back}</div>
             </div>
           ))}
         </div>
@@ -811,11 +833,7 @@ export default function SkyBlockHubPrototype() {
               </button>
             ))}
           </div>
-          <MinecraftInventoryGrid
-            title={inventoryTab}
-            items={inventoryViews[inventoryTab]}
-            columns={inventoryTab === 'Armor' ? 4 : 9}
-          />
+          <MinecraftInventoryGrid title={inventoryTab} items={inventoryViews[inventoryTab]} columns={inventoryTab === 'Armor' ? 4 : 9} />
         </div>
         <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
           <SectionTitle eyebrow="Equipment" title="Armor and storage view" faintClass={activeTheme.faint} />
@@ -894,22 +912,10 @@ export default function SkyBlockHubPrototype() {
               <ItemThumb src={textures.netherStar} alt="SkyBlock Hub" frameClass={activeTheme.imageFrame} />
               <div>
                 <div className={`text-xs uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
-                <div className="text-2xl font-black">Main Website</div>
+                <div className="text-2xl font-black">Profile Viewer</div>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              <CustomDropdown
-                value={selectedMenu.charAt(0).toUpperCase() + selectedMenu.slice(1)}
-                options={navItems.map((n) => n.label)}
-                onChange={(value) => {
-                  const found = navItems.find((n) => n.label === value);
-                  if (found) {
-                    setSelectedMenu(found.key);
-                    setHasSearched(true);
-                  }
-                }}
-                theme={activeTheme}
-              />
               <CustomDropdown
                 value={selectedTheme}
                 options={themes.map((t) => t.name)}
@@ -922,8 +928,12 @@ export default function SkyBlockHubPrototype() {
 
         {!hasSearched ? <LandingPage /> : null}
 
-        <ProfileHero />
-        {renderPage()}
+        {hasSearched ? (
+          <>
+            <ProfileHero />
+            {renderPage()}
+          </>
+        ) : null}
 
         <footer className={`mt-8 rounded-[28px] border p-5 ${activeTheme.panel}`}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
