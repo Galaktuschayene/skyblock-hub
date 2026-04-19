@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { SkinViewer, createOrbitControls, WalkingAnimation } from 'skinview3d';
 
 type Theme = {
   name: string;
@@ -17,31 +18,34 @@ type Theme = {
   imageFrame: string;
   bodyPattern: string;
   buttonVar: string;
+  githubButton: string;
 };
 
-type NavKey = 'dashboard' | 'player' | 'collections' | 'upgrades' | 'leaderboards' | 'settings';
+type NavKey = 'overview' | 'player' | 'collections' | 'upgrades' | 'leaderboards' | 'inventory' | 'settings';
 
 type Upgrade = { name: string; cost: string; impact: string; reason: string; item: string };
 
 type CollectionItem = { name: string; progress: number; item: string; tier: string; next: string };
 
+type InventoryTab = 'Inventory' | 'Armor' | 'Backpacks' | 'Ender Chest';
+
 const themes: Theme[] = [
   {
-    name: 'Void',
-    shell: 'bg-zinc-950 text-zinc-100',
-    panel: 'border-white/10 bg-white/5',
-    soft: 'bg-black/20 border-white/10',
-    hero: 'from-lime-500/15 via-emerald-500/10 to-cyan-500/10',
-    accent: 'bg-lime-400 text-zinc-950',
-    accentSoft: 'bg-lime-400/15 text-lime-300',
-    accentText: 'text-lime-300',
-    subText: 'text-zinc-300',
-    faint: 'text-zinc-400',
-    progress: 'bg-lime-400',
-    imageFrame: 'bg-zinc-900 border-lime-400/30',
-    bodyPattern:
-      'bg-[radial-gradient(circle_at_top_right,rgba(132,204,22,0.12),transparent_25%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.1),transparent_30%)]',
-    buttonVar: '#a3e635',
+    name: 'Minimal',
+    shell: 'bg-zinc-50 text-zinc-950',
+    panel: 'border-zinc-200 bg-white/90',
+    soft: 'bg-zinc-100 border-zinc-200',
+    hero: 'from-white via-zinc-100 to-zinc-200',
+    accent: 'bg-zinc-950 text-white',
+    accentSoft: 'bg-zinc-950/8 text-zinc-900',
+    accentText: 'text-zinc-900',
+    subText: 'text-zinc-600',
+    faint: 'text-zinc-500',
+    progress: 'bg-zinc-950',
+    imageFrame: 'bg-white border-zinc-200',
+    bodyPattern: 'bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.05),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(0,0,0,0.04),transparent_28%)]',
+    buttonVar: '#111827',
+    githubButton: 'bg-black text-white hover:bg-black/90 hover:ring-black',
   },
   {
     name: 'Sky',
@@ -56,9 +60,9 @@ const themes: Theme[] = [
     faint: 'text-sky-200/55',
     progress: 'bg-cyan-300',
     imageFrame: 'bg-sky-950/60 border-cyan-300/30',
-    bodyPattern:
-      'bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_34%)]',
+    bodyPattern: 'bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_34%)]',
     buttonVar: '#67e8f9',
+    githubButton: 'bg-black text-white hover:bg-black/90 hover:ring-cyan-300',
   },
   {
     name: 'Ruby',
@@ -73,9 +77,9 @@ const themes: Theme[] = [
     faint: 'text-rose-200/50',
     progress: 'bg-rose-300',
     imageFrame: 'bg-neutral-950 border-rose-300/30',
-    bodyPattern:
-      'bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.12),transparent_34%)]',
+    bodyPattern: 'bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.12),transparent_34%)]',
     buttonVar: '#fda4af',
+    githubButton: 'bg-black text-white hover:bg-black/90 hover:ring-rose-300',
   },
 ];
 
@@ -85,6 +89,7 @@ const block = (name: string) => `${textureBase}/block/${name}.png`;
 
 const textures = {
   player: 'https://mc-heads.net/avatar/Technoblade/128',
+  skin: 'https://mc-heads.net/skin/Technoblade',
   melon: block('melon_side'),
   cobblestone: block('cobblestone'),
   diamond: item('diamond'),
@@ -105,10 +110,19 @@ const textures = {
   enderChest: block('ender_chest_front'),
   diamondSword: item('diamond_sword'),
   helmet: item('diamond_helmet'),
+  chestplate: item('diamond_chestplate'),
+  leggings: item('diamond_leggings'),
   boots: item('diamond_boots'),
   shovel: item('diamond_shovel'),
   bucket: item('water_bucket'),
   book: item('book'),
+  carrot: item('carrot'),
+  potato: item('potato'),
+  apple: item('apple'),
+  bow: item('bow'),
+  totem: item('totem_of_undying'),
+  pearl: item('ender_pearl'),
+  steak: item('cooked_beef'),
 };
 
 function ArrowIcon({ className = '' }: { className?: string }) {
@@ -128,9 +142,26 @@ function ChevronIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function ActionButton({ label, color }: { label: string; color: string }) {
+function GitHubIcon() {
+  return (
+    <svg className="h-4 w-4 fill-current" viewBox="0 0 438.549 438.549">
+      <path d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg className="h-4 w-4 transition-all duration-300 group-hover:text-yellow-300" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" />
+    </svg>
+  );
+}
+
+function ActionButton({ label, color, onClick }: { label: string; color: string; onClick?: () => void }) {
   return (
     <button
+      onClick={onClick}
       className="group inline-flex items-center justify-between gap-3 overflow-hidden rounded-full px-5 py-3 font-semibold text-white transition duration-300 hover:bg-black"
       style={{ backgroundColor: color } as React.CSSProperties}
     >
@@ -140,6 +171,27 @@ function ActionButton({ label, color }: { label: string; color: string }) {
         <ArrowIcon className="absolute h-4 w-4 -translate-x-[150%] translate-y-[150%] transition-transform delay-100 duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
       </span>
     </button>
+  );
+}
+
+function GitHubButton({ theme }: { theme: Theme }) {
+  return (
+    <a
+      href="https://github.com/Galaktuschayene/skyblock-hub"
+      target="_blank"
+      rel="noreferrer"
+      className={`group relative flex w-full max-w-52 items-center justify-center gap-2 overflow-hidden rounded-md px-4 py-2 text-sm font-medium shadow transition-all duration-300 ease-out hover:ring-2 hover:ring-offset-2 ${theme.githubButton}`}
+    >
+      <span className="absolute right-0 -mt-12 h-32 w-8 translate-x-12 rotate-12 bg-white opacity-10 transition-all duration-1000 ease-out group-hover:-translate-x-40" />
+      <div className="flex items-center">
+        <GitHubIcon />
+        <span className="ml-1 text-white">Star on GitHub</span>
+      </div>
+      <div className="ml-2 flex items-center gap-1 text-sm">
+        <StarIcon />
+        <span className="inline-block tabular-nums font-medium tracking-wider text-white">6</span>
+      </div>
+    </a>
   );
 }
 
@@ -163,39 +215,19 @@ function SectionTitle({ eyebrow, title, faintClass, right }: { eyebrow: string; 
   );
 }
 
-function CustomDropdown({
-  value,
-  options,
-  onChange,
-  theme,
-}: {
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-  theme: Theme;
-}) {
+function CustomDropdown({ value, options, onChange, theme }: { value: string; options: string[]; onChange: (value: string) => void; theme: Theme }) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`flex h-12 min-w-[180px] items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-semibold transition ${theme.soft}`}
-      >
+      <button onClick={() => setOpen((v) => !v)} className={`flex h-12 min-w-[180px] items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-semibold transition ${theme.soft}`}>
         <span>{value}</span>
         <ChevronIcon className={`h-4 w-4 transition ${open ? 'rotate-180' : ''}`} />
       </button>
       {open ? (
         <div className={`absolute right-0 z-30 mt-2 min-w-full overflow-hidden rounded-2xl border shadow-2xl ${theme.panel}`}>
           {options.map((option) => (
-            <button
-              key={option}
-              onClick={() => {
-                onChange(option);
-                setOpen(false);
-              }}
-              className={`block w-full px-4 py-3 text-left text-sm transition hover:bg-white/10 ${option === value ? theme.accentText : ''}`}
-            >
+            <button key={option} onClick={() => { onChange(option); setOpen(false); }} className={`block w-full px-4 py-3 text-left text-sm transition hover:bg-black/5 dark:hover:bg-white/10 ${option === value ? theme.accentText : ''}`}>
               {option}
             </button>
           ))}
@@ -205,14 +237,66 @@ function CustomDropdown({
   );
 }
 
-export default function SkyBlockHubPrototype() {
-  const [selectedTheme, setSelectedTheme] = useState('Void');
-  const [selectedMenu, setSelectedMenu] = useState<NavKey>('dashboard');
-
-  const activeTheme = useMemo(
-    () => themes.find((theme) => theme.name === selectedTheme) ?? themes[0],
-    [selectedTheme]
+function SkeletonCard({ theme }: { theme: Theme }) {
+  return (
+    <div className={`relative flex w-full animate-pulse gap-3 rounded-[24px] border p-4 ${theme.panel}`}>
+      <div className="h-12 w-12 rounded-full bg-slate-300 dark:bg-slate-600" />
+      <div className="flex-1">
+        <div className="mb-2 h-5 w-3/5 rounded-lg bg-slate-300 dark:bg-slate-600" />
+        <div className="h-5 w-[90%] rounded-lg bg-slate-300 dark:bg-slate-600" />
+      </div>
+      <div className="absolute bottom-5 right-4 h-4 w-4 rounded-full bg-slate-300 dark:bg-slate-600" />
+    </div>
   );
+}
+
+function SkinViewerCard({ skinUrl, theme }: { skinUrl: string; theme: Theme }) {
+  const mountRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!mountRef.current) return;
+
+    mountRef.current.innerHTML = '';
+    const viewer = new SkinViewer({
+      width: 320,
+      height: 420,
+      skin: skinUrl,
+      canvas: undefined,
+    });
+
+    mountRef.current.appendChild(viewer.canvas);
+    viewer.zoom = 0.9;
+    viewer.fov = 50;
+    viewer.autoRotate = true;
+    viewer.autoRotateSpeed = 0.8;
+    viewer.animation = new WalkingAnimation();
+    const controls = createOrbitControls(viewer);
+    controls.enableZoom = true;
+    controls.enablePan = false;
+
+    return () => {
+      controls.dispose();
+      viewer.dispose();
+    };
+  }, [skinUrl]);
+
+  return (
+    <div className={`rounded-[28px] border p-5 ${theme.panel}`}>
+      <SectionTitle eyebrow="3D Skin" title="Rotate the player" faintClass={theme.faint} right="Drag to rotate" />
+      <div className={`flex min-h-[420px] items-center justify-center rounded-[24px] border ${theme.soft}`}>
+        <div ref={mountRef} className="overflow-hidden rounded-[24px]" />
+      </div>
+    </div>
+  );
+}
+
+export default function SkyBlockHubPrototype() {
+  const [selectedTheme, setSelectedTheme] = useState('Minimal');
+  const [selectedMenu, setSelectedMenu] = useState<NavKey>('overview');
+  const [hasSearched, setHasSearched] = useState(false);
+  const [inventoryTab, setInventoryTab] = useState<InventoryTab>('Inventory');
+
+  const activeTheme = useMemo(() => themes.find((theme) => theme.name === selectedTheme) ?? themes[0], [selectedTheme]);
 
   const player = {
     username: 'Technoblade',
@@ -278,24 +362,72 @@ export default function SkyBlockHubPrototype() {
   ];
 
   const navItems: { key: NavKey; label: string; item: string }[] = [
-    { key: 'dashboard', label: 'Overview', item: textures.map },
+    { key: 'overview', label: 'Overview', item: textures.map },
     { key: 'player', label: 'Player', item: textures.player },
     { key: 'collections', label: 'Collections', item: textures.melon },
     { key: 'upgrades', label: 'Upgrades', item: textures.enchantedBook },
     { key: 'leaderboards', label: 'Leaderboards', item: textures.compass },
+    { key: 'inventory', label: 'Inventory', item: textures.chest },
     { key: 'settings', label: 'Themes', item: textures.clock },
   ];
+
+  const inventoryViews: Record<InventoryTab, string[]> = {
+    Inventory: [textures.diamondSword, textures.bow, textures.steak, textures.bucket, textures.pearl, textures.carrot, textures.apple, textures.book, textures.gold, textures.enchantedBook, textures.totem, textures.compass, textures.clock, textures.netherStar, textures.diamondPickaxe, textures.fishingRod],
+    Armor: [textures.helmet, textures.chestplate, textures.leggings, textures.boots],
+    Backpacks: [textures.chest, textures.enderChest, textures.chest, textures.enderChest, textures.chest, textures.enderChest],
+    'Ender Chest': [textures.diamond, textures.gold, textures.emerald, textures.netherStar, textures.pearl, textures.book, textures.diamondPickaxe, textures.diamondHoe, textures.fishingRod, textures.enchantedBook, textures.totem, textures.bucket],
+  };
+
+  function LandingPage() {
+    return (
+      <>
+        <section className={`mb-8 rounded-[32px] border bg-gradient-to-br p-6 md:p-8 ${activeTheme.panel} ${activeTheme.hero}`}>
+          <div className="grid gap-8 lg:grid-cols-[1.25fr_0.95fr] lg:items-center">
+            <div>
+              <div className={`text-sm uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
+              <h1 className="mt-3 max-w-3xl text-5xl font-black tracking-tight md:text-6xl">The clean SkyBlock profile site with planning tools.</h1>
+              <p className={`mt-4 max-w-2xl text-lg leading-8 ${activeTheme.subText}`}>
+                Search a player, inspect their profile, rotate their 3D skin, browse collections, preview inventory-style pages, compare upgrade paths, and check leaderboards in one place.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <ActionButton label="Search a Profile" color={activeTheme.buttonVar} onClick={() => setHasSearched(true)} />
+                <GitHubButton theme={activeTheme} />
+              </div>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {['3D Skin Viewer', 'Inventory Preview', 'Cheapest Upgrades', 'Collections', 'Leaderboards'].map((tag) => (
+                  <div key={tag} className={`rounded-full border px-4 py-2 text-sm ${activeTheme.soft}`}>{tag}</div>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-4">
+              <SkeletonCard theme={activeTheme} />
+              <SkeletonCard theme={activeTheme} />
+              <SkeletonCard theme={activeTheme} />
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {statCards.map((card) => (
+            <div key={card.label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
+              <div className="flex items-center justify-between gap-4">
+                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{card.label}</div>
+                <ItemThumb src={card.item} alt={card.label} frameClass={activeTheme.imageFrame} />
+              </div>
+              <div className="mt-3 text-3xl font-black">{card.value}</div>
+            </div>
+          ))}
+        </section>
+      </>
+    );
+  }
 
   function ProfileTabs() {
     return (
       <div className={`mt-6 rounded-[24px] border p-3 ${activeTheme.panel}`}>
         <div className="flex flex-wrap gap-3">
           {navItems.map((nav) => (
-            <button
-              key={nav.key}
-              onClick={() => setSelectedMenu(nav.key)}
-              className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition duration-300 hover:-translate-y-0.5 ${selectedMenu === nav.key ? activeTheme.accentSoft : activeTheme.soft}`}
-            >
+            <button key={nav.key} onClick={() => setSelectedMenu(nav.key)} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition duration-300 hover:-translate-y-0.5 ${selectedMenu === nav.key ? activeTheme.accentSoft : activeTheme.soft}`}>
               <ItemThumb src={nav.item} alt={nav.label} frameClass={activeTheme.imageFrame} size="h-8 w-8" />
               <span>{nav.label}</span>
             </button>
@@ -307,20 +439,17 @@ export default function SkyBlockHubPrototype() {
 
   function ProfileHero() {
     return (
-      <section className={`mb-8 rounded-[32px] border bg-gradient-to-br p-6 shadow-2xl shadow-black/20 ${activeTheme.panel} ${activeTheme.hero}`}>
-        <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+      <section className={`mb-8 rounded-[32px] border bg-gradient-to-br p-6 shadow-2xl shadow-black/5 ${activeTheme.panel} ${activeTheme.hero}`}>
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
           <div>
-            <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Search Player</div>
-            <h2 className="mt-2 text-4xl font-black tracking-tight">Find any SkyBlock profile</h2>
-            <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>
-              Cleaner profile-first layout with custom dropdowns, real Minecraft item textures, collections, upgrades, and leaderboard views directly under the looked-up player.
-            </p>
+            <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Player Search</div>
+            <h2 className="mt-2 text-4xl font-black tracking-tight">{player.username}</h2>
+            <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>Profile-first layout. Everything important now lives below the looked-up player instead of off to the side.</p>
             <div className="mt-6 flex flex-col gap-3 md:flex-row">
-              <input defaultValue="Technoblade" className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`} placeholder="Enter Minecraft username" />
-              <ActionButton label="Search Profile" color={activeTheme.buttonVar} />
+              <input defaultValue={player.username} className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`} placeholder="Enter Minecraft username" />
+              <ActionButton label="Load Profile" color={activeTheme.buttonVar} />
             </div>
           </div>
-
           <div className={`rounded-[28px] border p-5 ${activeTheme.soft}`}>
             <div className="flex items-center gap-4">
               <ItemThumb src={textures.player} alt={player.username} frameClass={activeTheme.imageFrame} size="h-20 w-20" />
@@ -348,25 +477,30 @@ export default function SkyBlockHubPrototype() {
             </div>
           </div>
         </div>
-
         <ProfileTabs />
       </section>
     );
   }
 
-  function DashboardPage() {
+  function OverviewPage() {
     return (
       <>
-        <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {statCards.map((card) => (
-            <div key={card.label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
-              <div className="flex items-center justify-between gap-4">
-                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{card.label}</div>
-                <ItemThumb src={card.item} alt={card.label} frameClass={activeTheme.imageFrame} />
-              </div>
-              <div className="mt-3 text-3xl font-black">{card.value}</div>
+        <section className="mb-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <SkinViewerCard skinUrl={textures.skin} theme={activeTheme} />
+          <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
+            <SectionTitle eyebrow="Main Features" title="What this site will do" faintClass={activeTheme.faint} />
+            <div className="space-y-3">
+              {[
+                'Player overview with profile stats, museum, garden, and HOTM.',
+                'Inventory preview sections for inventory, armor, backpacks, and ender chest.',
+                'Collections page with progress, tiers, and next unlock targets.',
+                'Upgrade planner for farming, mining, and fishing.',
+                'Leaderboards with polished animated cards.',
+              ].map((line) => (
+                <div key={line} className={`rounded-2xl border px-4 py-3 text-sm ${activeTheme.soft}`}>{line}</div>
+              ))}
             </div>
-          ))}
+          </div>
         </section>
 
         <section className="grid gap-4 xl:grid-cols-3">
@@ -412,51 +546,17 @@ export default function SkyBlockHubPrototype() {
     ] as const;
 
     return (
-      <>
-        <section className={`mb-8 rounded-[28px] border p-6 ${activeTheme.panel}`}>
-          <SectionTitle eyebrow="Player Page" title="Full progression overview" faintClass={activeTheme.faint} right="Stats · Gear · Skills · Museum" />
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-            <div className={`rounded-[24px] border p-5 ${activeTheme.soft}`}>
-              <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                <ItemThumb src={textures.player} alt={player.username} frameClass={activeTheme.imageFrame} size="h-24 w-24" />
-                <div>
-                  <h4 className="text-3xl font-black">{player.username}</h4>
-                  <div className={`mt-2 ${activeTheme.subText}`}>Profile: {player.profile} · SkyBlock Level {player.skyblockLevel} · Skill Average {player.skillAverage}</div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {['Museum', 'Garden', 'Dungeons', 'Minions', 'Pets', 'Collections'].map((tag) => (
-                      <div key={tag} className={`rounded-2xl border px-3 py-2 text-sm ${activeTheme.soft}`}>{tag}</div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {blocks.map(([label, value, img]) => (
+          <div key={label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{label}</div>
+              <ItemThumb src={img} alt={label} frameClass={activeTheme.imageFrame} />
             </div>
-            <div className={`rounded-[24px] border p-5 ${activeTheme.soft}`}>
-              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Focus Areas</div>
-              <div className="mt-4 space-y-3">
-                {[
-                  'Farming Fortune upgrades still have the best cheap value.',
-                  'Mining utility before replacing full drill setup.',
-                  'Fishing still has easy gains through enchants and pet levels.',
-                ].map((tip) => (
-                  <div key={tip} className={`rounded-2xl border px-4 py-3 text-sm ${activeTheme.soft}`}>{tip}</div>
-                ))}
-              </div>
-            </div>
+            <div className="mt-3 text-3xl font-black">{value}</div>
           </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {blocks.map(([label, value, img]) => (
-            <div key={label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{label}</div>
-                <ItemThumb src={img} alt={label} frameClass={activeTheme.imageFrame} />
-              </div>
-              <div className="mt-3 text-3xl font-black">{value}</div>
-            </div>
-          ))}
-        </section>
-      </>
+        ))}
+      </section>
     );
   }
 
@@ -475,7 +575,7 @@ export default function SkyBlockHubPrototype() {
                 </div>
               </div>
               <div className={`text-sm ${activeTheme.subText}`}>{entry.next}</div>
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
                 <div className={`h-full rounded-full ${activeTheme.progress}`} style={{ width: `${entry.progress}%` }} />
               </div>
               <div className={`mt-2 text-sm ${activeTheme.faint}`}>{entry.progress}% completed</div>
@@ -535,7 +635,7 @@ export default function SkyBlockHubPrototype() {
                   </div>
                   <div className={`text-sm ${activeTheme.subText}`}>{entry.detail}</div>
                 </div>
-                <div className="absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border border-white/10 bg-black/80 p-6 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                <div className="absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border border-white/10 bg-black/85 p-6 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
                   <div>
                     <div className="text-sm uppercase tracking-[0.25em] text-white/60">Why it matters</div>
                     <div className="mt-3 text-2xl font-bold">{entry.label}</div>
@@ -550,24 +650,55 @@ export default function SkyBlockHubPrototype() {
     );
   }
 
+  function InventoryPage() {
+    return (
+      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
+          <SectionTitle eyebrow="Inventory Preview" title="API-ready inventory panels" faintClass={activeTheme.faint} right="Inventory · Armor · Backpacks · Ender Chest" />
+          <div className="mb-4 flex flex-wrap gap-2">
+            {(['Inventory', 'Armor', 'Backpacks', 'Ender Chest'] as InventoryTab[]).map((tab) => (
+              <button key={tab} onClick={() => setInventoryTab(tab)} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${inventoryTab === tab ? activeTheme.accentSoft : activeTheme.soft}`}>
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className={`grid grid-cols-4 gap-3 rounded-[24px] border p-4 ${activeTheme.soft}`}>
+            {inventoryViews[inventoryTab].map((src, index) => (
+              <div key={`${inventoryTab}-${index}`} className={`rounded-2xl border p-2 ${activeTheme.imageFrame}`}>
+                <img src={src} alt={`${inventoryTab} slot ${index + 1}`} className="mx-auto h-12 w-12 object-contain [image-rendering:pixelated]" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
+          <SectionTitle eyebrow="Equipment" title="Armor and storage view" faintClass={activeTheme.faint} />
+          <div className="grid gap-4 md:grid-cols-2">
+            {[['Helmet', textures.helmet], ['Chestplate', textures.chestplate], ['Leggings', textures.leggings], ['Boots', textures.boots], ['Backpack 1', textures.chest], ['Ender Chest', textures.enderChest]].map(([label, src]) => (
+              <div key={label} className={`rounded-2xl border p-4 ${activeTheme.soft}`}>
+                <div className="flex items-center gap-3">
+                  <ItemThumb src={String(src)} alt={label} frameClass={activeTheme.imageFrame} size="h-12 w-12" />
+                  <div>
+                    <div className="font-semibold">{label}</div>
+                    <div className={`text-sm ${activeTheme.faint}`}>Preview section for API inventory data</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function SettingsPage() {
     return (
       <section className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
         <SectionTitle eyebrow="Themes" title="Visual settings" faintClass={activeTheme.faint} right="Choose your style" />
         <div className="grid gap-4 md:grid-cols-3">
           {themes.map((theme) => (
-            <button
-              key={theme.name}
-              onClick={() => setSelectedTheme(theme.name)}
-              className={`rounded-[24px] border p-5 text-left transition duration-300 hover:-translate-y-1 ${theme.name === selectedTheme ? activeTheme.accentSoft : activeTheme.soft}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-xl font-bold">{theme.name}</div>
-                  <div className={`mt-2 text-sm ${activeTheme.faint}`}>Theme preset for the dashboard shell.</div>
-                </div>
-                <ItemThumb src={textures.clock} alt={theme.name} frameClass={activeTheme.imageFrame} />
-              </div>
+            <button key={theme.name} onClick={() => setSelectedTheme(theme.name)} className={`rounded-[24px] border p-5 text-left transition duration-300 hover:-translate-y-1 ${theme.name === selectedTheme ? activeTheme.accentSoft : activeTheme.soft}`}>
+              <div className="text-xl font-bold">{theme.name}</div>
+              <div className={`mt-2 text-sm ${activeTheme.faint}`}>Theme preset for the dashboard shell.</div>
             </button>
           ))}
         </div>
@@ -585,10 +716,12 @@ export default function SkyBlockHubPrototype() {
         return <UpgradesPage />;
       case 'leaderboards':
         return <LeaderboardsPage />;
+      case 'inventory':
+        return <InventoryPage />;
       case 'settings':
         return <SettingsPage />;
       default:
-        return <DashboardPage />;
+        return <OverviewPage />;
     }
   }
 
@@ -601,21 +734,26 @@ export default function SkyBlockHubPrototype() {
               <ItemThumb src={textures.netherStar} alt="SkyBlock Hub" frameClass={activeTheme.imageFrame} />
               <div>
                 <div className={`text-xs uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
-                <div className="text-2xl font-black">Profile Dashboard</div>
+                <div className="text-2xl font-black">Main Website</div>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
               <CustomDropdown value={selectedMenu.charAt(0).toUpperCase() + selectedMenu.slice(1)} options={navItems.map((n) => n.label)} onChange={(value) => {
                 const found = navItems.find((n) => n.label === value);
-                if (found) setSelectedMenu(found.key);
+                if (found) {
+                  setSelectedMenu(found.key);
+                  setHasSearched(true);
+                }
               }} theme={activeTheme} />
               <CustomDropdown value={selectedTheme} options={themes.map((t) => t.name)} onChange={setSelectedTheme} theme={activeTheme} />
+              <GitHubButton theme={activeTheme} />
             </div>
           </div>
         </header>
 
-        <ProfileHero />
+        {!hasSearched ? <LandingPage /> : null}
 
+        <ProfileHero />
         {renderPage()}
       </main>
     </div>
