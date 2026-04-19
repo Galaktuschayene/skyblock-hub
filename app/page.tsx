@@ -16,6 +16,7 @@ type Theme = {
   progress: string;
   imageFrame: string;
   bodyPattern: string;
+  buttonVar: string;
 };
 
 type CollectionItem = {
@@ -40,6 +41,7 @@ const themes: Theme[] = [
     imageFrame: 'bg-zinc-900 border-lime-400/30',
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(132,204,22,0.12),transparent_25%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.1),transparent_30%)]',
+    buttonVar: '#a3e635',
   },
   {
     name: 'Sky',
@@ -56,6 +58,7 @@ const themes: Theme[] = [
     imageFrame: 'bg-sky-950/60 border-cyan-300/30',
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_34%)]',
+    buttonVar: '#67e8f9',
   },
   {
     name: 'Ruby',
@@ -72,6 +75,7 @@ const themes: Theme[] = [
     imageFrame: 'bg-neutral-950 border-rose-300/30',
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.12),transparent_34%)]',
+    buttonVar: '#fda4af',
   },
 ];
 
@@ -221,6 +225,15 @@ const sprites = {
   ),
 };
 
+function ArrowIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={className}>
+      <path d="M5 12h14" />
+      <path d="m13 5 7 7-7 7" />
+    </svg>
+  );
+}
+
 export default function SkyBlockHubPrototype() {
   const [selectedTheme, setSelectedTheme] = useState('Void');
   const [selectedMenu, setSelectedMenu] = useState('Overview');
@@ -274,11 +287,12 @@ export default function SkyBlockHubPrototype() {
   };
 
   const leaderboard = [
-    { rank: '#1,284', label: 'Net Worth' },
-    { rank: '#2,019', label: 'Skill Average' },
-    { rank: '#742', label: 'Farming' },
-    { rank: '#1,106', label: 'Mining' },
-    { rank: '#3,488', label: 'Fishing' },
+    { label: 'Net Worth', rank: '#1,284', detail: 'Top 0.8% of tracked players', back: 'Coins are spread between purse, bank, inventory value, and museum assets.' },
+    { label: 'Skill Average', rank: '#2,019', detail: 'Strong all-round progression', back: 'Average skill level 48.7 with farming and mining already capped at 60.' },
+    { label: 'Farming', rank: '#742', detail: 'Contest-ready setup', back: 'Best next cheap gains are crop tool tuning and lotus equipment upgrades.' },
+    { label: 'Mining', rank: '#1,106', detail: 'Gemstone path active', back: 'Next efficient path is utility unlocks before a full drill replacement.' },
+    { label: 'Fishing', rank: '#3,488', detail: 'Mid-high tier fishing profile', back: 'Low-cost enchants and pet levels are still better than big-ticket swaps.' },
+    { label: 'Museum', rank: '#912', detail: 'High collection value', back: 'Museum value is already strong and can become a flex leaderboard category.' },
   ];
 
   const statCards = [
@@ -288,7 +302,7 @@ export default function SkyBlockHubPrototype() {
     { label: 'Museum Value', value: player.museumValue },
   ];
 
-  const menuOptions = ['Overview', 'Collections', 'Upgrades', 'Leaderboards'];
+  const menuOptions = ['Overview', 'Collections', 'Upgrades', 'Leaderboards', 'Themes'];
 
   return (
     <div className={`min-h-screen ${activeTheme.shell} ${activeTheme.bodyPattern}`}>
@@ -335,7 +349,7 @@ export default function SkyBlockHubPrototype() {
                 <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Search Player</div>
                 <h2 className="mt-2 text-4xl font-black tracking-tight">Find any SkyBlock profile</h2>
                 <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>
-                  Real pixel-art collection tiles, working theme switching, and a cleaner dropdown-based top menu.
+                  Added flip-card leaderboard tiles, animated pill buttons, working themes, and handcrafted pixel-art collection items.
                 </p>
               </div>
             </div>
@@ -345,8 +359,15 @@ export default function SkyBlockHubPrototype() {
                 className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`}
                 placeholder="Enter Minecraft username"
               />
-              <button className={`h-14 rounded-2xl px-6 font-semibold transition hover:scale-[1.01] ${activeTheme.accent}`}>
-                Search Profile
+              <button
+                className="group inline-flex h-14 items-center gap-3 overflow-hidden rounded-full px-5 font-semibold text-white transition duration-300 hover:bg-black"
+                style={{ backgroundColor: activeTheme.buttonVar } as React.CSSProperties}
+              >
+                <span>Search Profile</span>
+                <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white" style={{ color: activeTheme.buttonVar } as React.CSSProperties}>
+                  <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
+                  <ArrowIcon className="absolute h-4 w-4 -translate-x-[150%] translate-y-[150%] transition-transform delay-100 duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
+                </span>
               </button>
             </div>
 
@@ -363,11 +384,11 @@ export default function SkyBlockHubPrototype() {
             <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Selected Theme</div>
             <h3 className="mt-2 text-2xl font-bold">{selectedTheme}</h3>
             <p className={`mt-3 text-sm leading-6 ${activeTheme.subText}`}>
-              This now actually switches themes. The dropdown also gives the UI a cleaner game-menu feel.
+              The dropdown now switches themes for the whole page. The call-to-action buttons use the animated sliding-arrow style you sent.
             </p>
             <div className="mt-5 grid grid-cols-3 gap-3">
               {collections.slice(0, 3).map((item) => (
-                <div key={item.name} className={`rounded-2xl border p-3 ${activeTheme.soft}`}>
+                <div key={item.name} className={`rounded-2xl border p-3 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
                   <div className={`rounded-2xl border p-2 ${activeTheme.imageFrame}`}>
                     <img src={item.sprite} alt={item.name} className="mx-auto h-14 w-14 object-contain [image-rendering:pixelated]" />
                   </div>
@@ -379,7 +400,7 @@ export default function SkyBlockHubPrototype() {
 
         <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {statCards.map((card) => (
-            <div key={card.label} className={`rounded-[28px] border p-5 ${activeTheme.panel}`}>
+            <div key={card.label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
               <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{card.label}</div>
               <div className="mt-3 text-3xl font-black">{card.value}</div>
             </div>
@@ -406,7 +427,7 @@ export default function SkyBlockHubPrototype() {
                 ['Slayer XP', player.slayerXP],
                 ['Catacombs', player.catacombs],
               ].map(([k, v]) => (
-                <div key={String(k)} className={`rounded-2xl border p-4 ${activeTheme.soft}`}>
+                <div key={String(k)} className={`rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
                   <div className={`text-sm ${activeTheme.faint}`}>{k}</div>
                   <div className="mt-2 text-2xl font-bold">{v}</div>
                 </div>
@@ -415,17 +436,21 @@ export default function SkyBlockHubPrototype() {
           </div>
 
           <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
-            <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Leaderboard Positions</div>
-            <h3 className="mt-2 text-2xl font-bold">Current ranking</h3>
-            <div className="mt-5 space-y-3">
-              {leaderboard.map((row) => (
-                <div key={row.label} className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${activeTheme.soft}`}>
-                  <div>
-                    <div className={`text-sm ${activeTheme.faint}`}>{row.label}</div>
-                    <div className="font-semibold">{row.rank}</div>
-                  </div>
-                  <div className={`rounded-xl px-3 py-1 text-sm ${activeTheme.accentSoft}`}>Rank</div>
-                </div>
+            <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Quick Actions</div>
+            <h3 className="mt-2 text-2xl font-bold">Explore more</h3>
+            <div className="mt-5 flex flex-col gap-3">
+              {['Open Collections', 'See Cheapest Upgrades', 'Browse Leaderboards'].map((label) => (
+                <button
+                  key={label}
+                  className="group inline-flex items-center justify-between gap-3 overflow-hidden rounded-full px-5 py-3 font-semibold text-white transition duration-300 hover:bg-black"
+                  style={{ backgroundColor: activeTheme.buttonVar } as React.CSSProperties}
+                >
+                  <span>{label}</span>
+                  <span className="relative grid h-7 w-7 place-items-center overflow-hidden rounded-full bg-white" style={{ color: activeTheme.buttonVar } as React.CSSProperties}>
+                    <ArrowIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
+                    <ArrowIcon className="absolute h-4 w-4 -translate-x-[150%] translate-y-[150%] transition-transform delay-100 duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
+                  </span>
+                </button>
               ))}
             </div>
           </div>
@@ -442,9 +467,9 @@ export default function SkyBlockHubPrototype() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {collections.map((item) => (
-              <div key={item.name} className={`rounded-2xl border p-4 ${activeTheme.soft}`}>
+              <div key={item.name} className={`group rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
                 <div className="mb-4 flex items-center gap-3">
-                  <div className={`rounded-2xl border p-2 ${activeTheme.imageFrame}`}>
+                  <div className={`rounded-2xl border p-2 transition duration-300 group-hover:scale-105 ${activeTheme.imageFrame}`}>
                     <img
                       src={item.sprite}
                       alt={item.name}
@@ -464,6 +489,39 @@ export default function SkyBlockHubPrototype() {
           </div>
         </section>
 
+        <section className="mb-8">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Leaderboards</div>
+              <h3 className="mt-2 text-2xl font-bold">Flip for more info</h3>
+            </div>
+            <div className={`text-sm ${activeTheme.faint}`}>Hover any card</div>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {leaderboard.map((entry) => (
+              <div key={entry.label} className="group h-56 [perspective:1000px]">
+                <div className="relative h-full w-full rounded-[24px] transition-transform duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                  <div className={`absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border p-6 [backface-visibility:hidden] ${activeTheme.panel}`}>
+                    <div>
+                      <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>{entry.label}</div>
+                      <div className="mt-4 text-4xl font-black">{entry.rank}</div>
+                    </div>
+                    <div className={`text-sm ${activeTheme.subText}`}>{entry.detail}</div>
+                  </div>
+                  <div className="absolute inset-0 flex h-full w-full flex-col justify-between rounded-[24px] border border-white/10 bg-black/80 p-6 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                    <div>
+                      <div className="text-sm uppercase tracking-[0.25em] text-white/60">Why it matters</div>
+                      <div className="mt-3 text-2xl font-bold">{entry.label}</div>
+                    </div>
+                    <div className="text-sm leading-6 text-white/85">{entry.back}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="grid gap-4 xl:grid-cols-3">
           {Object.entries(cheapUpgrades).map(([category, upgrades]) => (
             <div key={category} className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
@@ -471,7 +529,7 @@ export default function SkyBlockHubPrototype() {
               <h3 className="mt-2 text-2xl font-bold capitalize">Cheapest upgrades</h3>
               <div className="mt-5 space-y-4">
                 {upgrades.map((upgrade) => (
-                  <div key={upgrade.name} className={`rounded-2xl border p-4 ${activeTheme.soft}`}>
+                  <div key={upgrade.name} className={`rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}>
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <div className="font-semibold">{upgrade.name}</div>
