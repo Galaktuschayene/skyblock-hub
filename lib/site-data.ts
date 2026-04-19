@@ -4,7 +4,8 @@ export type NavKey =
   | 'collections'
   | 'upgrades'
   | 'leaderboards'
-  | 'inventory';
+  | 'inventory'
+  | 'settings';
 
 export type Upgrade = {
   name: string;
