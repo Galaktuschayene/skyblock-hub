@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SkinViewer, createOrbitControls, WalkingAnimation } from 'skinview3d';
+import { SkinViewer, WalkingAnimation } from 'skinview3d';
 
 type Theme = {
   name: string;
@@ -270,12 +270,8 @@ function SkinViewerCard({ skinUrl, theme }: { skinUrl: string; theme: Theme }) {
     viewer.autoRotate = true;
     viewer.autoRotateSpeed = 0.8;
     viewer.animation = new WalkingAnimation();
-    const controls = createOrbitControls(viewer);
-    controls.enableZoom = true;
-    controls.enablePan = false;
 
     return () => {
-      controls.dispose();
       viewer.dispose();
     };
   }, [skinUrl]);
