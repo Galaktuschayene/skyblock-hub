@@ -9,7 +9,6 @@ const tabs: { key: NavKey; label: string }[] = [
   { key: 'upgrades', label: 'Upgrades' },
   { key: 'leaderboards', label: 'Leaderboards' },
   { key: 'inventory', label: 'Inventory' },
-  { key: 'settings', label: 'Themes' },
 ];
 
 export function ProfileTabs({
