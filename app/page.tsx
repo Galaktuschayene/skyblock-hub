@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SkinViewer, WalkingAnimation } from 'skinview3d';
+import { SkinViewer, createOrbitControls, WalkingAnimation } from 'skinview3d';
 
 type Theme = {
   name: string;
@@ -270,8 +270,12 @@ function SkinViewerCard({ skinUrl, theme }: { skinUrl: string; theme: Theme }) {
     viewer.autoRotate = true;
     viewer.autoRotateSpeed = 0.8;
     viewer.animation = new WalkingAnimation();
+    const controls = createOrbitControls(viewer);
+    controls.enableZoom = true;
+    controls.enablePan = false;
 
     return () => {
+      controls.dispose();
       viewer.dispose();
     };
   }, [skinUrl]);
@@ -436,26 +440,17 @@ export default function SkyBlockHubPrototype() {
   function ProfileHero() {
     return (
       <section className={`mb-8 rounded-[32px] border bg-gradient-to-br p-6 shadow-2xl shadow-black/5 ${activeTheme.panel} ${activeTheme.hero}`}>
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_1.1fr]">
+          <SkinViewerCard skinUrl={textures.skin} theme={activeTheme} />
           <div>
             <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Player Search</div>
             <h2 className="mt-2 text-4xl font-black tracking-tight">{player.username}</h2>
-            <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>Profile-first layout. Everything important now lives below the looked-up player instead of off to the side.</p>
+            <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>Profile-first layout with the 3D skin viewer at the top, Minecraft-style inventory in the main view, and clean tabs directly under the looked-up player.</p>
             <div className="mt-6 flex flex-col gap-3 md:flex-row">
               <input defaultValue={player.username} className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`} placeholder="Enter Minecraft username" />
               <ActionButton label="Load Profile" color={activeTheme.buttonVar} />
             </div>
-          </div>
-          <div className={`rounded-[28px] border p-5 ${activeTheme.soft}`}>
-            <div className="flex items-center gap-4">
-              <ItemThumb src={textures.player} alt={player.username} frameClass={activeTheme.imageFrame} size="h-20 w-20" />
-              <div>
-                <div className="text-2xl font-black">{player.username}</div>
-                <div className={`mt-1 ${activeTheme.subText}`}>Profile: {player.profile}</div>
-                <div className={`mt-2 text-sm ${activeTheme.faint}`}>SkyBlock Level {player.skyblockLevel} · Skill Avg {player.skillAverage}</div>
-              </div>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-6 grid grid-cols-2 gap-3">
               {[
                 ['Net Worth', player.netWorth, textures.gold],
                 ['Garden', player.gardenLevel, textures.melon],
@@ -478,17 +473,24 @@ export default function SkyBlockHubPrototype() {
     );
   }
 
-  function OverviewPage() {
+  function MinecraftInventoryGrid({ title, items, columns = 9 }: { title: string; items: string[]; columns?: number }) {
+    const cells = Array.from({ length: Math.max(items.length, columns * 3) }, (_, i) => items[i] ?? null);
+
+    return (
+      <div className={`rounded-[28px] border p-5 ${activeTheme.panel}`}>
+        <SectionTitle eyebrow="Inventory Preview" title={title} faintClass={activeTheme.faint} right="Minecraft-style grid" />
+        <div className={`rounded-[24px] border p-4 ${activeTheme.soft}`}>
+          <div cfunction OverviewPage() {
     return (
       <>
-        <section className="mb-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <SkinViewerCard skinUrl={textures.skin} theme={activeTheme} />
+        <section className="mb-8 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <MinecraftInventoryGrid title="Main Inventory" items={inventoryViews.Inventory} columns={9} />
           <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
             <SectionTitle eyebrow="Main Features" title="What this site will do" faintClass={activeTheme.faint} />
             <div className="space-y-3">
               {[
-                'Player overview with profile stats, museum, garden, and HOTM.',
-                'Inventory preview sections for inventory, armor, backpacks, and ender chest.',
+                '3D rotatable skin viewer at the top of the profile.',
+                'Minecraft-style inventory, armor, backpack, and ender chest previews.',
                 'Collections page with progress, tiers, and next unlock targets.',
                 'Upgrade planner for farming, mining, and fishing.',
                 'Leaderboards with polished animated cards.',
@@ -512,6 +514,24 @@ export default function SkyBlockHubPrototype() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <div className="font-semibold">{upgrade.name}</div>
+                            <div className={`mt-1 text-sm ${activeTheme.faint}`}>{upgrade.reason}</div>
+                          </div>
+                          <div className={`rounded-xl px-3 py-1 text-sm ${activeTheme.accentSoft}`}>{upgrade.cost}</div>
+                        </div>
+                        <div className={`mt-3 text-sm ${activeTheme.accentText}`}>{upgrade.impact}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      </>
+    );
+  }
+
+  function PlayerPage() {-semibold">{upgrade.name}</div>
                             <div className={`mt-1 text-sm ${activeTheme.faint}`}>{upgrade.reason}</div>
                           </div>
                           <div className={`rounded-xl px-3 py-1 text-sm ${activeTheme.accentSoft}`}>{upgrade.cost}</div>
@@ -648,23 +668,16 @@ export default function SkyBlockHubPrototype() {
 
   function InventoryPage() {
     return (
-      <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
-          <SectionTitle eyebrow="Inventory Preview" title="API-ready inventory panels" faintClass={activeTheme.faint} right="Inventory · Armor · Backpacks · Ender Chest" />
-          <div className="mb-4 flex flex-wrap gap-2">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-4">
+          <div className="mb-2 flex flex-wrap gap-2">
             {(['Inventory', 'Armor', 'Backpacks', 'Ender Chest'] as InventoryTab[]).map((tab) => (
               <button key={tab} onClick={() => setInventoryTab(tab)} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${inventoryTab === tab ? activeTheme.accentSoft : activeTheme.soft}`}>
                 {tab}
               </button>
             ))}
           </div>
-          <div className={`grid grid-cols-4 gap-3 rounded-[24px] border p-4 ${activeTheme.soft}`}>
-            {inventoryViews[inventoryTab].map((src, index) => (
-              <div key={`${inventoryTab}-${index}`} className={`rounded-2xl border p-2 ${activeTheme.imageFrame}`}>
-                <img src={src} alt={`${inventoryTab} slot ${index + 1}`} className="mx-auto h-12 w-12 object-contain [image-rendering:pixelated]" />
-              </div>
-            ))}
-          </div>
+          <MinecraftInventoryGrid title={inventoryTab} items={inventoryViews[inventoryTab]} columns={inventoryTab === 'Armor' ? 4 : 9} />
         </div>
         <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
           <SectionTitle eyebrow="Equipment" title="Armor and storage view" faintClass={activeTheme.faint} />
@@ -751,6 +764,16 @@ export default function SkyBlockHubPrototype() {
 
         <ProfileHero />
         {renderPage()}
+
+        <footer className={`mt-8 rounded-[28px] border p-5 ${activeTheme.panel}`}>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>SkyBlock Hub</div>
+              <div className="mt-1 text-lg font-bold">Open source prototype for a Hypixel SkyBlock profile site</div>
+            </div>
+            <GitHubButton theme={activeTheme} />
+          </div>
+        </footer>
       </main>
     </div>
   );
