@@ -17,7 +17,6 @@ type Theme = {
   imageFrame: string;
   bodyPattern: string;
   buttonVar: string;
-  sidebar: string;
 };
 
 type NavKey = 'dashboard' | 'player' | 'collections' | 'upgrades' | 'leaderboards' | 'settings';
@@ -43,7 +42,6 @@ const themes: Theme[] = [
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(132,204,22,0.12),transparent_25%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.1),transparent_30%)]',
     buttonVar: '#a3e635',
-    sidebar: 'bg-zinc-950/90 border-white/10',
   },
   {
     name: 'Sky',
@@ -61,7 +59,6 @@ const themes: Theme[] = [
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_34%)]',
     buttonVar: '#67e8f9',
-    sidebar: 'bg-sky-950/90 border-sky-200/10',
   },
   {
     name: 'Ruby',
@@ -79,7 +76,6 @@ const themes: Theme[] = [
     bodyPattern:
       'bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(251,146,60,0.12),transparent_34%)]',
     buttonVar: '#fda4af',
-    sidebar: 'bg-neutral-950/90 border-rose-200/10',
   },
 ];
 
@@ -124,6 +120,14 @@ function ArrowIcon({ className = '' }: { className?: string }) {
   );
 }
 
+function ChevronIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={className}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 function ActionButton({ label, color }: { label: string; color: string }) {
   return (
     <button
@@ -155,6 +159,48 @@ function SectionTitle({ eyebrow, title, faintClass, right }: { eyebrow: string; 
         <h3 className="mt-2 text-2xl font-bold">{title}</h3>
       </div>
       {right ? <div className={`text-sm ${faintClass}`}>{right}</div> : null}
+    </div>
+  );
+}
+
+function CustomDropdown({
+  value,
+  options,
+  onChange,
+  theme,
+}: {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  theme: Theme;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex h-12 min-w-[180px] items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-semibold transition ${theme.soft}`}
+      >
+        <span>{value}</span>
+        <ChevronIcon className={`h-4 w-4 transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open ? (
+        <div className={`absolute right-0 z-30 mt-2 min-w-full overflow-hidden rounded-2xl border shadow-2xl ${theme.panel}`}>
+          {options.map((option) => (
+            <button
+              key={option}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className={`block w-full px-4 py-3 text-left text-sm transition hover:bg-white/10 ${option === value ? theme.accentText : ''}`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -232,7 +278,7 @@ export default function SkyBlockHubPrototype() {
   ];
 
   const navItems: { key: NavKey; label: string; item: string }[] = [
-    { key: 'dashboard', label: 'Dashboard', item: textures.map },
+    { key: 'dashboard', label: 'Overview', item: textures.map },
     { key: 'player', label: 'Player', item: textures.player },
     { key: 'collections', label: 'Collections', item: textures.melon },
     { key: 'upgrades', label: 'Upgrades', item: textures.enchantedBook },
@@ -240,46 +286,77 @@ export default function SkyBlockHubPrototype() {
     { key: 'settings', label: 'Themes', item: textures.clock },
   ];
 
-  function DashboardPage() {
+  function ProfileTabs() {
     return (
-      <>
-        <section className="mb-8 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-          <div className={`rounded-[28px] border bg-gradient-to-br p-6 shadow-2xl shadow-black/20 ${activeTheme.panel} ${activeTheme.hero}`}>
-            <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Search Player</div>
-                <h2 className="mt-2 text-4xl font-black tracking-tight">Find any SkyBlock profile</h2>
-                <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>
-                  Multi-page layout, real Minecraft item textures, working themes, player overview, collections, upgrade advice, and leaderboards.
-                </p>
-              </div>
-            </div>
+      <div className={`mt-6 rounded-[24px] border p-3 ${activeTheme.panel}`}>
+        <div className="flex flex-wrap gap-3">
+          {navItems.map((nav) => (
+            <button
+              key={nav.key}
+              onClick={() => setSelectedMenu(nav.key)}
+              className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition duration-300 hover:-translate-y-0.5 ${selectedMenu === nav.key ? activeTheme.accentSoft : activeTheme.soft}`}
+            >
+              <ItemThumb src={nav.item} alt={nav.label} frameClass={activeTheme.imageFrame} size="h-8 w-8" />
+              <span>{nav.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function ProfileHero() {
+    return (
+      <section className={`mb-8 rounded-[32px] border bg-gradient-to-br p-6 shadow-2xl shadow-black/20 ${activeTheme.panel} ${activeTheme.hero}`}>
+        <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+          <div>
+            <div className={`text-sm uppercase tracking-[0.3em] ${activeTheme.accentText}`}>Search Player</div>
+            <h2 className="mt-2 text-4xl font-black tracking-tight">Find any SkyBlock profile</h2>
+            <p className={`mt-3 max-w-2xl ${activeTheme.subText}`}>
+              Cleaner profile-first layout with custom dropdowns, real Minecraft item textures, collections, upgrades, and leaderboard views directly under the looked-up player.
+            </p>
             <div className="mt-6 flex flex-col gap-3 md:flex-row">
               <input defaultValue="Technoblade" className={`h-14 flex-1 rounded-2xl border px-4 text-base outline-none placeholder:opacity-60 ${activeTheme.soft}`} placeholder="Enter Minecraft username" />
               <ActionButton label="Search Profile" color={activeTheme.buttonVar} />
             </div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              {[`Page: ${selectedMenu}`, `Theme: ${selectedTheme}`, 'Real Item Textures', 'Upgrade Planner'].map((tag) => (
-                <div key={tag} className={`rounded-2xl border px-4 py-2 text-sm ${activeTheme.soft}`}>{tag}</div>
+          </div>
+
+          <div className={`rounded-[28px] border p-5 ${activeTheme.soft}`}>
+            <div className="flex items-center gap-4">
+              <ItemThumb src={textures.player} alt={player.username} frameClass={activeTheme.imageFrame} size="h-20 w-20" />
+              <div>
+                <div className="text-2xl font-black">{player.username}</div>
+                <div className={`mt-1 ${activeTheme.subText}`}>Profile: {player.profile}</div>
+                <div className={`mt-2 text-sm ${activeTheme.faint}`}>SkyBlock Level {player.skyblockLevel} · Skill Avg {player.skillAverage}</div>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {[
+                ['Net Worth', player.netWorth, textures.gold],
+                ['Garden', player.gardenLevel, textures.melon],
+                ['HOTM', player.hotm, textures.diamondPickaxe],
+                ['Museum', player.museumValue, textures.chest],
+              ].map(([label, value, img]) => (
+                <div key={String(label)} className={`rounded-2xl border p-3 ${activeTheme.soft}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className={`text-xs uppercase tracking-[0.25em] ${activeTheme.faint}`}>{label}</div>
+                    <ItemThumb src={String(img)} alt={String(label)} frameClass={activeTheme.imageFrame} size="h-8 w-8" />
+                  </div>
+                  <div className="mt-2 text-lg font-bold">{value}</div>
+                </div>
               ))}
             </div>
           </div>
+        </div>
 
-          <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
-            <SectionTitle eyebrow="Profile Snapshot" title={`${player.username} · ${player.profile}`} faintClass={activeTheme.faint} />
-            <div className="flex items-center gap-4">
-              <ItemThumb src={textures.player} alt={player.username} frameClass={activeTheme.imageFrame} size="h-20 w-20" />
-              <div className={`text-sm leading-6 ${activeTheme.subText}`}>
-                SkyBlock Level {player.skyblockLevel}, Skill Average {player.skillAverage}, Museum {player.museumValue}, HOTM {player.hotm}.
-              </div>
-            </div>
-            <div className="mt-5 flex flex-col gap-3">
-              <ActionButton label="Open Player Page" color={activeTheme.buttonVar} />
-              <ActionButton label="See Upgrade Advice" color={activeTheme.buttonVar} />
-            </div>
-          </div>
-        </section>
+        <ProfileTabs />
+      </section>
+    );
+  }
 
+  function DashboardPage() {
+    return (
+      <>
         <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {statCards.map((card) => (
             <div key={card.label} className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}>
@@ -517,57 +594,30 @@ export default function SkyBlockHubPrototype() {
 
   return (
     <div className={`min-h-screen ${activeTheme.shell} ${activeTheme.bodyPattern}`}>
-      <div className="flex min-h-screen flex-col lg:flex-row">
-        <aside className={`border-b p-4 lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:border-b-0 lg:border-r ${activeTheme.sidebar}`}>
-          <div className="mb-6 flex items-center gap-3">
-            <ItemThumb src={textures.netherStar} alt="SkyBlock Hub" frameClass={activeTheme.imageFrame} />
-            <div>
-              <div className={`text-xs uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
-              <div className="text-xl font-black">Prototype</div>
-            </div>
-          </div>
-
-          <div className={`mb-4 text-xs uppercase tracking-[0.3em] ${activeTheme.faint}`}>Pages</div>
-          <div className="space-y-2">
-            {navItems.map((nav) => (
-              <button
-                key={nav.key}
-                onClick={() => setSelectedMenu(nav.key)}
-                className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition duration-300 hover:-translate-y-0.5 ${selectedMenu === nav.key ? activeTheme.accentSoft : activeTheme.soft}`}
-              >
-                <ItemThumb src={nav.item} alt={nav.label} frameClass={activeTheme.imageFrame} />
-                <span className="font-semibold">{nav.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-6">
-            <div className={`mb-3 text-xs uppercase tracking-[0.3em] ${activeTheme.faint}`}>Quick Theme</div>
-            <select value={selectedTheme} onChange={(e) => setSelectedTheme(e.target.value)} className={`h-11 w-full rounded-2xl border px-4 text-sm font-semibold outline-none ${activeTheme.soft}`}>
-              {themes.map((theme) => (
-                <option key={theme.name} value={theme.name} className="bg-zinc-900 text-white">{theme.name} Theme</option>
-              ))}
-            </select>
-          </div>
-        </aside>
-
-        <main className="flex-1 p-4 md:p-6">
-          <header className={`mb-6 rounded-[28px] border p-5 ${activeTheme.panel}`}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <main className="mx-auto max-w-7xl px-4 py-6 md:px-6">
+        <header className={`mb-6 rounded-[28px] border p-4 ${activeTheme.panel}`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <ItemThumb src={textures.netherStar} alt="SkyBlock Hub" frameClass={activeTheme.imageFrame} />
               <div>
-                <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>Current Page</div>
-                <h1 className="mt-2 text-3xl font-black capitalize">{selectedMenu}</h1>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <ActionButton label="Player Search" color={activeTheme.buttonVar} />
-                <ActionButton label="Cheapest Upgrades" color={activeTheme.buttonVar} />
+                <div className={`text-xs uppercase tracking-[0.35em] ${activeTheme.accentText}`}>SkyBlock Hub</div>
+                <div className="text-2xl font-black">Profile Dashboard</div>
               </div>
             </div>
-          </header>
+            <div className="flex flex-wrap gap-3">
+              <CustomDropdown value={selectedMenu.charAt(0).toUpperCase() + selectedMenu.slice(1)} options={navItems.map((n) => n.label)} onChange={(value) => {
+                const found = navItems.find((n) => n.label === value);
+                if (found) setSelectedMenu(found.key);
+              }} theme={activeTheme} />
+              <CustomDropdown value={selectedTheme} options={themes.map((t) => t.name)} onChange={setSelectedTheme} theme={activeTheme} />
+            </div>
+          </div>
+        </header>
 
-          {renderPage()}
-        </main>
-      </div>
+        <ProfileHero />
+
+        {renderPage()}
+      </main>
     </div>
   );
 }
