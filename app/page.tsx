@@ -473,7 +473,7 @@ export default function SkyBlockHubPrototype() {
     );
   }
 
-  function MinecraftInventoryGrid({ title, items, columns = 9 }: { title: string; items: string[]; columns?: number }) {
+  function PlayerPage() {{ title, items, columns = 9 }: { title: string; items: string[]; columns?: number }) {
     const cells = Array.from({ length: Math.max(items.length, columns * 3) }, (_, i) => items[i] ?? null);
 
     return (
