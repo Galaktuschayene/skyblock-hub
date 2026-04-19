@@ -473,7 +473,174 @@ export default function SkyBlockHubPrototype() {
     );
   }
 
-  function PlayerPage() {{ title, items, columns = 9 }: { title: string; items: string[]; columns?: number }) {
+  function MinecraftInventoryGrid({
+  title,
+  items,
+  columns = 9,
+}: {
+  title: string;
+  items: string[];
+  columns?: number;
+}) {
+  const cells = Array.from(
+    { length: Math.max(items.length, columns * 3) },
+    (_, i) => items[i] ?? null
+  );
+
+  return (
+    <div className={`rounded-[28px] border p-5 ${activeTheme.panel}`}>
+      <SectionTitle
+        eyebrow="Inventory Preview"
+        title={title}
+        faintClass={activeTheme.faint}
+        right="Minecraft-style grid"
+      />
+      <div className={`rounded-[24px] border p-4 ${activeTheme.soft}`}>
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+        >
+          {cells.map((src, index) => (
+            <div
+              key={`${title}-${index}`}
+              className={`aspect-square rounded-md border p-1 shadow-inner ${
+                src
+                  ? activeTheme.imageFrame
+                  : 'border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/5'
+              }`}
+            >
+              {src ? (
+                <img
+                  src={src}
+                  alt={`${title} slot ${index + 1}`}
+                  className="mx-auto h-full w-full object-contain [image-rendering:pixelated]"
+                />
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OverviewPage() {
+  return (
+    <>
+      <section className="mb-8 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <MinecraftInventoryGrid
+          title="Main Inventory"
+          items={inventoryViews.Inventory}
+          columns={9}
+        />
+        <div className={`rounded-[28px] border p-6 ${activeTheme.panel}`}>
+          <SectionTitle
+            eyebrow="Main Features"
+            title="What this site will do"
+            faintClass={activeTheme.faint}
+          />
+          <div className="space-y-3">
+            {[
+              '3D rotatable skin viewer at the top of the profile.',
+              'Minecraft-style inventory, armor, backpack, and ender chest previews.',
+              'Collections page with progress, tiers, and next unlock targets.',
+              'Upgrade planner for farming, mining, and fishing.',
+              'Leaderboards with polished animated cards.',
+            ].map((line) => (
+              <div
+                key={line}
+                className={`rounded-2xl border px-4 py-3 text-sm ${activeTheme.soft}`}
+              >
+                {line}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        {Object.entries(cheapUpgrades).map(([category, upgrades]) => (
+          <div
+            key={category}
+            className={`rounded-[28px] border p-6 ${activeTheme.panel}`}
+          >
+            <SectionTitle
+              eyebrow={category}
+              title="Cheapest upgrades"
+              faintClass={activeTheme.faint}
+            />
+            <div className="space-y-4">
+              {upgrades.map((upgrade) => (
+                <div
+                  key={upgrade.name}
+                  className={`rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 ${activeTheme.soft}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <ItemThumb
+                      src={upgrade.item}
+                      alt={upgrade.name}
+                      frameClass={activeTheme.imageFrame}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="font-semibold">{upgrade.name}</div>
+                          <div className={`mt-1 text-sm ${activeTheme.faint}`}>
+                            {upgrade.reason}
+                          </div>
+                        </div>
+                        <div
+                          className={`rounded-xl px-3 py-1 text-sm ${activeTheme.accentSoft}`}
+                        >
+                          {upgrade.cost}
+                        </div>
+                      </div>
+                      <div className={`mt-3 text-sm ${activeTheme.accentText}`}>
+                        {upgrade.impact}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+    </>
+  );
+}
+
+function PlayerPage() {
+  const blocks = [
+    ['Purse', player.purse, textures.gold],
+    ['Bank', player.bank, textures.enderChest],
+    ['Garden Level', player.gardenLevel, textures.melon],
+    ['HOTM', player.hotm, textures.diamondPickaxe],
+    ['Pets', player.pets, textures.emerald],
+    ['Accessories', player.accessories, textures.book],
+    ['Catacombs', player.catacombs, textures.diamondSword],
+    ['Slayer XP', player.slayerXP, textures.netherStar],
+  ] as const;
+
+  return (
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {blocks.map(([label, value, img]) => (
+        <div
+          key={label}
+          className={`rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${activeTheme.panel}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className={`text-sm uppercase tracking-[0.25em] ${activeTheme.faint}`}>
+              {label}
+            </div>
+            <ItemThumb src={img} alt={label} frameClass={activeTheme.imageFrame} />
+          </div>
+          <div className="mt-3 text-3xl font-black">{value}</div>
+        </div>
+      ))}
+    </section>
+  );
+}: { title: string; items: string[]; columns?: number }) {
     const cells = Array.from({ length: Math.max(items.length, columns * 3) }, (_, i) => items[i] ?? null);
 
     return (
